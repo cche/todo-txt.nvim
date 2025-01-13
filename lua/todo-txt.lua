@@ -5,7 +5,7 @@ local M = {}
 
 -- Configuration with defaults
 M.config = {
-	todo_file = vim.fn.expand("~/src/repos/todo-txt.nvim/todo.txt"),
+	todo_file = vim.fn.expand("~/src/github/todo-txt.nvim/todo.txt"),
 	window = {
 		width = 60,
 		height = 10,
@@ -18,9 +18,9 @@ local function create_floating_window(width, height, title)
 	local columns = vim.o.columns
 	local lines = vim.o.lines
 
-	-- Calculate dimensions (80% of screen space)
-	local win_width = width or math.floor(columns * 0.8)
-	local win_height = height or math.floor(lines * 0.8)
+	-- Use config values if provided, otherwise calculate as 80% of screen space
+	local win_width = width or M.config.window.width or math.floor(columns * 0.8)
+	local win_height = height or M.config.window.height or math.floor(lines * 0.8)
 
 	local win_opts = {
 		relative = "editor",
