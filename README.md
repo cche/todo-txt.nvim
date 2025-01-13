@@ -43,6 +43,17 @@ require('todo-txt').setup({
 
 The floating window will cover 80% of the screen space by default, but you can adjust the width and height as needed.
 
+In order to disable the default key mappings, you can pass `disable_default_mappings` to the setup function, and then define your own mappings:
+
+```lua
+require('todo-txt').setup({ disable_default_mappings = true })
+
+-- Define your own key mappings
+vim.keymap.set("n", "<leader>tt", ":TodoList<CR>", { desc = "Todo List", noremap = true, silent = true })
+vim.keymap.set("n", "<leader>ta", ":TodoAdd<CR>", { desc = "Add Todo", noremap = true, silent = true })
+vim.keymap.set("n", "<leader>td", ":TodoDue<CR>", { desc = "Due Tasks", noremap = true, silent = true })
+```
+
 ## Usage
 
 The plugin provides several commands for managing your todos:
@@ -53,15 +64,41 @@ The plugin provides several commands for managing your todos:
 
 ## Key Mappings
 
+Default leader key mappings (can be disabled with `disable_default_mappings`):
+- `<leader>tt` - Show todo list
+- `<leader>ta` - Add new todo
+- `<leader>td` - Show due tasks
+
 When in the todo list window:
-- `<CR>` - Mark the selected todo item as complete
+- `<CR>` - Marks the selected todo item as complete
 - `q`    - Close the window
 - `e`    - Edit the selected item
 - `a`    - Add a new todo item
+- `p`    - Set priority for the selected item
 
 When editing a todo item:
 - `<CR>`  - Save changes
 - `<Esc>` - Cancel editing
+
+When setting priority:
+- Enter a single capital letter (A-Z) and press `<CR>` to set the priority
+- Press `<Esc>` to cancel
+- To remove priority, press `<CR>` without entering a letter
+
+## Task Format
+
+Tasks follow the [todo.txt format](http://todotxt.org/):
+
+- Priority is indicated with capital letters in parentheses: `(A) High priority task`
+- Creation date is automatically added: `2025-01-13 Do something`
+- Due dates can be specified with `due:YYYY-MM-DD`
+
+Example tasks:
+```
+(A) 2025-01-13 High priority task due:2025-01-20
+2025-01-13 Normal priority task
+(B) 2025-01-13 Medium priority task with @context and +project
+```
 
 ## License
 
@@ -74,3 +111,4 @@ Contributions are welcome! Please feel free to submit a Pull Request.
 ## Acknowledgments
 
 This plugin is inspired by the [todo.txt](http://todotxt.org/) format created by Gina Trapani.
+This plugin was built while testing Cascade in Windsurf, an editor developed by [Codeium](https://codeium.com/).
