@@ -13,6 +13,12 @@ M.config = {
 	},
 }
 
+-- Store references to the main list windows
+local list_windows = {
+    todo = { buf = nil, win = nil },
+    due = { buf = nil, win = nil }
+}
+
 -- Create a centered floating window
 local function create_floating_window(width, height, title)
 	local columns = vim.o.columns
@@ -43,6 +49,54 @@ local function create_floating_window(width, height, title)
 	vim.bo[buf].buftype = "nofile"
 
 	return buf, win
+end
+
+-- Function to update list window contents
+local function update_list_window(entries, window_type, title)
+    local win_info = list_windows[window_type]
+    if not win_info or not win_info.win or not api.nvim_win_is_valid(win_info.win) then
+        -- Create new window if it doesn't exist or is invalid
+        local buf, win = create_floating_window(nil, nil, title)
+        win_info = { buf = buf, win = win }
+        list_windows[window_type] = win_info
+        
+        -- Set buffer filetype
+        vim.bo[buf].filetype = "todo"
+        
+        -- Set keymaps for the todo list window
+        local opts = { noremap = true, silent = true }
+        api.nvim_buf_set_keymap(win_info.buf, "n", "q", "<cmd>q<CR>", opts)
+        api.nvim_buf_set_keymap(win_info.buf, "n", "<CR>", '<cmd>lua require("todo-txt").mark_selected_complete()<CR>', opts)
+        api.nvim_buf_set_keymap(win_info.buf, "n", "a", '<cmd>lua require("todo-txt").show_add_window()<CR>', opts)
+        api.nvim_buf_set_keymap(win_info.buf, "n", "e", '<cmd>lua require("todo-txt").show_edit_window()<CR>', opts)
+    end
+
+    -- Clear and update buffer contents
+    api.nvim_buf_set_option(win_info.buf, 'modifiable', true)
+    
+    -- Prepare display lines with numbers
+    local lines = {}
+    for i, entry in ipairs(entries) do
+        local index = entry.index or i
+        local display_line = string.format("%2d. %s", index, entry.entry or entry)
+        table.insert(lines, display_line)
+    end
+
+    api.nvim_buf_set_lines(win_info.buf, 0, -1, false, lines)
+
+    -- Apply syntax highlighting
+    api.nvim_buf_clear_namespace(win_info.buf, -1, 0, -1)
+    local ns_id = api.nvim_create_namespace("todo_highlights")
+
+    for i, line in ipairs(lines) do
+        local regions = highlights.get_highlights(i, line)
+        for _, region in ipairs(regions) do
+            api.nvim_buf_add_highlight(win_info.buf, ns_id, region.group, i - 1, region.start_col, region.end_col)
+        end
+    end
+
+    api.nvim_buf_set_option(win_info.buf, 'modifiable', false)
+    return win_info.buf, win_info.win
 end
 
 -- Function to read the todo.txt file and return a list of entries
@@ -166,37 +220,28 @@ end
 
 -- Submit edited entry
 function M.submit_edit(index)
-	local lines = api.nvim_buf_get_lines(0, 0, -1, false)
-	local new_content = lines[1]
+    local lines = api.nvim_buf_get_lines(0, 0, -1, false)
+    local new_content = lines[1]
 
-	local updated_entries = edit_entry(index, new_content)
-	if updated_entries then
-		-- Get the parent buffer and check its type
-		local parent_buf = vim.fn.bufnr("#")
-		local parent_type = vim.bo[parent_buf].filetype
+    local updated_entries = edit_entry(index, new_content)
+    if updated_entries then
+        -- Get the parent window before closing the edit window
+        local parent_win = vim.fn.win_getid(vim.fn.winnr('#'))
+        local parent_config = parent_win and api.nvim_win_get_config(parent_win)
+        local is_due_list = parent_config and parent_config.title and 
+            type(parent_config.title) == "string" and 
+            parent_config.title:match("Due Tasks")
 
-		-- Close the edit window
-		api.nvim_win_close(0, true)
+        -- Close the edit window
+        api.nvim_win_close(0, true)
 
-		-- Refresh the appropriate view
-		if parent_type == "todo" then
-			-- Check if we were in the due list by looking at the window title
-			local parent_win = vim.fn.win_findbuf(parent_buf)[1]
-			if parent_win then
-				local win_config = api.nvim_win_get_config(parent_win)
-				if
-					win_config
-					and win_config.title
-					and type(win_config.title) == "string"
-					and win_config.title:match("Due Tasks")
-				then
-					M.show_due_list()
-				else
-					M.show_todo_list()
-				end
-			end
-		end
-	end
+        -- Refresh the appropriate view
+        if is_due_list then
+            M.show_due_list()
+        else
+            M.show_todo_list()
+        end
+    end
 end
 
 -- Function to filter entries by due date
@@ -221,82 +266,16 @@ local function get_due_entries()
 	return due_entries
 end
 
--- Display due entries in floating window
-function M.show_due_list()
-	local due_entries = get_due_entries()
-	local buf, win = create_floating_window(nil, nil, " Due Tasks ")
-
-	-- Set buffer filetype
-	vim.bo[buf].filetype = "todo"
-
-	-- Prepare display lines with numbers and highlighting
-	local lines = {}
-	for _, entry in ipairs(due_entries) do
-		local display_line = string.format("%2d. %s", entry.index, entry.entry)
-		table.insert(lines, display_line)
-	end
-
-	api.nvim_buf_set_lines(buf, 0, -1, false, lines)
-
-	-- Apply syntax highlighting
-	api.nvim_buf_clear_namespace(buf, -1, 0, -1)
-	local ns_id = api.nvim_create_namespace("todo_highlights")
-
-	for i, line in ipairs(lines) do
-		local regions = highlights.get_highlights(i, line)
-		for _, region in ipairs(regions) do
-			api.nvim_buf_add_highlight(buf, ns_id, region.group, i - 1, region.start_col, region.end_col)
-		end
-	end
-
-	-- Set keymaps for the todo list window
-	local opts = { noremap = true, silent = true }
-	api.nvim_buf_set_keymap(buf, "n", "q", "<cmd>q<CR>", opts)
-	api.nvim_buf_set_keymap(buf, "n", "<CR>", '<cmd>lua require("todo-txt").mark_selected_complete()<CR>', opts)
-	api.nvim_buf_set_keymap(buf, "n", "a", '<cmd>lua require("todo-txt").show_add_window()<CR>', opts)
-	api.nvim_buf_set_keymap(buf, "n", "e", '<cmd>lua require("todo-txt").show_edit_window()<CR>', opts)
-
-	-- Make buffer non-modifiable after setting content
-	vim.bo[buf].modifiable = false
+-- Display entries in floating window
+function M.show_todo_list()
+    local entries = M.get_entries()
+    return update_list_window(entries, "todo", " Todo List ")
 end
 
--- Display todo list in floating window
-function M.show_todo_list()
-	local entries = M.get_entries()
-	local buf, win = create_floating_window(nil, nil, " Todo List ")
-
-	-- Set buffer filetype
-	vim.bo[buf].filetype = "todo"
-
-	-- Prepare display lines with numbers
-	local lines = {}
-	for i, entry in ipairs(entries) do
-		local display_line = string.format("%2d. %s", i, entry)
-		table.insert(lines, display_line)
-	end
-
-	api.nvim_buf_set_lines(buf, 0, -1, false, lines)
-
-	-- Apply syntax highlighting
-	api.nvim_buf_clear_namespace(buf, -1, 0, -1)
-	local ns_id = api.nvim_create_namespace("todo_highlights")
-
-	for i, line in ipairs(lines) do
-		local regions = highlights.get_highlights(i, line)
-		for _, region in ipairs(regions) do
-			api.nvim_buf_add_highlight(buf, ns_id, region.group, i - 1, region.start_col, region.end_col)
-		end
-	end
-
-	-- Set keymaps for the todo list window
-	local opts = { noremap = true, silent = true }
-	api.nvim_buf_set_keymap(buf, "n", "q", "<cmd>q<CR>", opts)
-	api.nvim_buf_set_keymap(buf, "n", "<CR>", '<cmd>lua require("todo-txt").mark_selected_complete()<CR>', opts)
-	api.nvim_buf_set_keymap(buf, "n", "a", '<cmd>lua require("todo-txt").show_add_window()<CR>', opts)
-	api.nvim_buf_set_keymap(buf, "n", "e", '<cmd>lua require("todo-txt").show_edit_window()<CR>', opts)
-
-	-- Make buffer non-modifiable after setting content
-	vim.bo[buf].modifiable = false
+-- Display due entries in floating window
+function M.show_due_list()
+    local due_entries = get_due_entries()
+    return update_list_window(due_entries, "due", " Due Tasks ")
 end
 
 -- Show add entry window
@@ -329,8 +308,15 @@ function M.mark_selected_complete()
 	local index = tonumber(line_content:match("^%s*(%d+)%."))
 
 	if mark_complete(index) then
-		api.nvim_win_close(0, true)
-		M.show_todo_list() -- Refresh the list
+		-- Get current window type
+		local win_config = api.nvim_win_get_config(0)
+		local is_due_list = win_config and win_config.title and type(win_config.title) == "string" and win_config.title:match("Due Tasks")
+		
+		if is_due_list then
+			M.show_due_list()
+		else
+			M.show_todo_list()
+		end
 	end
 end
 
