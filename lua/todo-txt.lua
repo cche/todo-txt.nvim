@@ -122,18 +122,11 @@ local function update_list_window(entries, window_type, title)
   return win_info.buf, win_info.win
 end
 
--- Function to read the todo.txt file and return a list of entries
-local function get_entries()
+-- Function to get entries from todo.txt file
+function M.get_entries()
   local file = io.open(M.config.todo_file, "r")
   if not file then
-    -- Create the file if it doesn't exist
-    file = io.open(M.config.todo_file, "w")
-    if file then
-      file:close()
-      file = io.open(M.config.todo_file, "r")
-    else
-      error("Could not create todo.txt file")
-    end
+    error("Could not open todo.txt file")
   end
 
   local entries = {}
@@ -163,7 +156,7 @@ local function add_entry(entry)
   if entry and entry:match("%S") then -- Check if entry is not empty or just whitespace
     local date = os.date("%Y-%m-%d")
     local formatted_entry = date .. " " .. entry:gsub("^%s*(.-)%s*$", "%1") -- Trim whitespace
-    local entries = get_entries()
+    local entries = M.get_entries()
     table.insert(entries, formatted_entry)
     write_entries(entries)
     return true
@@ -173,7 +166,7 @@ end
 
 -- Function to mark an entry as complete
 local function mark_complete(index)
-  local entries = get_entries()
+  local entries = M.get_entries()
   if index >= 1 and index <= #entries then
     local entry = entries[index]
     if not entry:match("^x %d%d%d%d%-%d%d%-%d%d") then
@@ -196,7 +189,7 @@ end
 
 -- Function to edit an entry
 local function edit_entry(index, new_content)
-  local entries = get_entries()
+  local entries = M.get_entries()
   if index >= 1 and index <= #entries then
     entries[index] = new_content
     write_entries(entries)
@@ -208,7 +201,7 @@ end
 
 -- Function to set priority of an entry
 local function set_priority(index, priority)
-  local entries = get_entries()
+  local entries = M.get_entries()
   if index >= 1 and index <= #entries then
     local entry = entries[index]
     -- Remove existing priority if any
@@ -235,7 +228,7 @@ function M.show_edit_window()
   end
 
   -- Get the original entry without the line number prefix
-  local entries = get_entries()
+  local entries = M.get_entries()
   local original_entry = entries[index]
 
   -- Create edit window
@@ -341,7 +334,7 @@ end
 
 -- Function to filter entries by due date
 local function get_due_entries()
-  local entries = get_entries()
+  local entries = M.get_entries()
   local due_entries = {}
 
   for i, entry in ipairs(entries) do
@@ -363,7 +356,7 @@ end
 
 -- Display entries in floating window
 function M.show_todo_list()
-  local entries = get_entries()
+  local entries = M.get_entries()
   return update_list_window(entries, "todo", " Todo List ")
 end
 
@@ -441,7 +434,7 @@ end
 
 -- Function to archive completed tasks
 function M.archive_done_tasks()
-  local entries = get_entries()
+  local entries = M.get_entries()
   local remaining_entries = {}
   local done_entries = {}
 

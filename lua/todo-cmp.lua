@@ -1,4 +1,5 @@
 local source = {}
+local todo = require("todo-txt")
 
 source.new = function()
 	return setmetatable({}, { __index = source })
@@ -6,7 +7,7 @@ end
 
 -- Get all unique contexts and projects from the todo file
 local function get_completions()
-	local entries = require("todo-txt").get_entries()
+	local entries = todo.get_entries()
 	local contexts = {}
 	local projects = {}
 
