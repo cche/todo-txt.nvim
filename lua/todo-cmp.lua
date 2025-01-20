@@ -35,7 +35,23 @@ source.get_keyword_pattern = function()
 	return [[\k*]]
 end
 
+-- Check if we're in the add window
+function source.is_available()
+	local win_config = vim.api.nvim_win_get_config(0)
+	return win_config.title 
+		and type(win_config.title) == "table"
+		and win_config.title[1]
+		and type(win_config.title[1]) == "table"
+		and (win_config.title[1][1] == " Add Todo " or win_config.title[1][1] == " Edit Todo ")
+end
+
 source.complete = function(self, params, callback)
+	-- Only provide completions in the add window
+	if not source.is_available() then
+		callback({})
+		return
+	end
+
 	local completions = get_completions()
 	local items = {}
 
