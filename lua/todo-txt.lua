@@ -52,6 +52,21 @@ local function create_floating_window(width, height, title)
   return buf, win
 end
 
+-- Helper function to get parent window type
+local function get_window_type(win_id)
+  local win_config = win_id and api.nvim_win_get_config(win_id)
+  if win_config and win_config.title and type(win_config.title) == "table" 
+    and win_config.title[1] and type(win_config.title[1]) == "table" then
+    local title = win_config.title[1][1]
+    if title == " Due Tasks " then
+      return "due"
+    elseif title == " Todo List " then
+      return "todo"
+    end
+  end
+  return nil
+end
+
 -- Function to update list window contents
 local function update_list_window(entries, window_type, title)
   local win_info = list_windows[window_type]
@@ -261,19 +276,13 @@ function M.submit_edit(index)
   if updated_entries then
     -- Get the parent window before closing the edit window
     local parent_win = vim.fn.win_getid(vim.fn.winnr("#"))
-    local parent_config = parent_win and api.nvim_win_get_config(parent_win)
-    local is_due_list = parent_config
-      and parent_config.title
-      and type(parent_config.title) == "table"
-      and parent_config.title[1]
-      and type(parent_config.title[1]) == "table"
-      and parent_config.title[1][1] == " Due Tasks "
+    local window_type = get_window_type(parent_win)
 
     -- Close the edit window
     api.nvim_win_close(0, true)
 
     -- Refresh the appropriate view
-    if is_due_list then
+    if window_type == "due" then
       M.show_due_list()
     else
       M.show_todo_list()
@@ -320,15 +329,9 @@ function M.submit_priority()
   if set_priority(index, priority) then
     -- Get the parent window type and refresh
     local parent_win = vim.fn.win_getid(vim.fn.winnr("#"))
-    local parent_config = parent_win and api.nvim_win_get_config(parent_win)
-    local is_due_list = parent_config
-      and parent_config.title
-      and type(parent_config.title) == "table"
-      and parent_config.title[1]
-      and type(parent_config.title[1]) == "table"
-      and parent_config.title[1][1] == " Due Tasks "
+    local window_type = get_window_type(parent_win)
 
-    if is_due_list then
+    if window_type == "due" then
       M.show_due_list()
     else
       M.show_todo_list()
@@ -401,16 +404,11 @@ function M.mark_selected_complete()
   local index = tonumber(line_content:match("^%s*(%d+)%."))
 
   if index and mark_complete(index) then
-    -- Get the current window config to determine if we're in the due tasks window
-    local win_config = api.nvim_win_get_config(0)
-
-    -- Check if we're in the due tasks window by checking the first title segment
-    local is_due_list = win_config.title
-      and type(win_config.title[1]) == "table"
-      and win_config.title[1][1] == " Due Tasks "
+    -- Get the current window type
+    local window_type = get_window_type(0)
 
     -- Refresh the appropriate view
-    if is_due_list then
+    if window_type == "due" then
       M.show_due_list()
     else
       M.show_todo_list()
@@ -465,16 +463,9 @@ function M.archive_done_tasks()
     append_to_done_file(done_entries)
 
     -- Refresh the current view
-    local current_win = api.nvim_get_current_win()
-    local win_config = current_win and api.nvim_win_get_config(current_win)
-    local is_due_list = win_config
-      and win_config.title
-      and type(win_config.title) == "table"
-      and win_config.title[1]
-      and type(win_config.title[1]) == "table"
-      and win_config.title[1][1] == " Due Tasks "
+    local window_type = get_window_type(0)
 
-    if is_due_list then
+    if window_type == "due" then
       M.show_due_list()
     else
       M.show_todo_list()
