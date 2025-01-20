@@ -6,6 +6,7 @@ local M = {}
 -- Configuration with defaults
 M.config = {
   todo_file = vim.fn.expand("~/src/github/todo-txt.nvim/todo.txt"),
+  done_file = vim.fn.expand("~/src/github/todo-txt.nvim/done.txt"),
   window = {
     width = math.floor(vim.o.columns * 0.8),
     height = math.floor(vim.o.lines * 0.8),
@@ -244,7 +245,7 @@ function M.show_edit_window()
     string.format('<cmd>lua require("todo-txt").submit_edit(%d)<CR>', index),
     opts
   )
-  api.nvim_buf_set_keymap(buf, "n", "q", "<cmd>q<CR>", opts)
+  api.nvim_buf_set_keymap(buf, "n", "<esc>", "<cmd>q<CR>", opts)
 
   -- Enable insert mode
   vim.cmd("startinsert!")
@@ -379,6 +380,7 @@ function M.show_add_window()
   -- Set keymaps for the add window
   local opts = { noremap = true, silent = true }
   api.nvim_buf_set_keymap(buf, "i", "<CR>", '<Esc><cmd>lua require("todo-txt").submit_new_entry()<CR>', opts)
+  api.nvim_buf_set_keymap(buf, "n", "<CR>", '<cmd>lua require("todo-txt").submit_new_entry()<CR>', opts)
   api.nvim_buf_set_keymap(buf, "n", "<Esc>", "<Esc><cmd>q<CR>", opts)
 end
 
@@ -416,6 +418,75 @@ function M.mark_selected_complete()
   end
 end
 
+-- Function to get the done file path
+local function get_done_file()
+  -- If done_file is not set, use the same directory as todo_file with "done.txt" name
+  if not M.config.done_file then
+    local todo_dir = vim.fn.fnamemodify(M.config.todo_file, ":h")
+    M.config.done_file = todo_dir .. "/done.txt"
+  end
+  return M.config.done_file
+end
+
+-- Function to append entries to done.txt
+local function append_to_done_file(entries)
+  local done_file = get_done_file()
+  local file = io.open(done_file, "a")
+  if not file then
+    error("Could not open done.txt file for writing")
+  end
+  for _, entry in ipairs(entries) do
+    file:write(entry .. "\n")
+  end
+  file:close()
+end
+
+-- Function to archive completed tasks
+function M.archive_done_tasks()
+  local entries = get_entries()
+  local remaining_entries = {}
+  local done_entries = {}
+
+  -- Separate completed and uncompleted tasks
+  for _, entry in ipairs(entries) do
+    if entry:match("^x ") then
+      table.insert(done_entries, entry)
+    else
+      table.insert(remaining_entries, entry)
+    end
+  end
+
+  -- If we found completed tasks
+  if #done_entries > 0 then
+    -- Write remaining tasks back to todo.txt
+    write_entries(remaining_entries)
+
+    -- Append completed tasks to done.txt
+    append_to_done_file(done_entries)
+
+    -- Refresh the current view
+    local current_win = api.nvim_get_current_win()
+    local win_config = current_win and api.nvim_win_get_config(current_win)
+    local is_due_list = win_config
+      and win_config.title
+      and type(win_config.title) == "table"
+      and win_config.title[1]
+      and type(win_config.title[1]) == "table"
+      and win_config.title[1][1] == " Due Tasks "
+
+    if is_due_list then
+      M.show_due_list()
+    else
+      M.show_todo_list()
+    end
+
+    -- Return number of archived tasks
+    return #done_entries
+  end
+
+  return 0
+end
+
 -- Set up commands
 function M.setup(opts)
   M.config = vim.tbl_deep_extend("force", M.config, opts or {})
@@ -427,12 +498,19 @@ function M.setup(opts)
   api.nvim_create_user_command("TodoList", M.show_todo_list, {})
   api.nvim_create_user_command("TodoAdd", M.show_add_window, {})
   api.nvim_create_user_command("TodoDue", M.show_due_list, {})
+  api.nvim_create_user_command("TodoArchive", M.archive_done_tasks, {})
 
   -- Create default key mappings if not disabled
   if not (opts and opts.disable_default_mappings) then
     vim.keymap.set("n", "<leader>tt", M.show_todo_list, { desc = "Todo List", noremap = true, silent = true })
     vim.keymap.set("n", "<leader>ta", M.show_add_window, { desc = "Add Todo", noremap = true, silent = true })
     vim.keymap.set("n", "<leader>td", M.show_due_list, { desc = "Due Tasks", noremap = true, silent = true })
+    vim.keymap.set(
+      "n",
+      "<leader>tz",
+      M.archive_done_tasks,
+      { desc = "Archive Done Tasks", noremap = true, silent = true }
+    )
   end
 
   -- Register nvim-cmp source
@@ -441,7 +519,5 @@ function M.setup(opts)
     cmp.register_source("todo-txt", require("todo-cmp").new())
   end
 end
-
-print("todo-txt loaded")
 
 return M

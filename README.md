@@ -10,6 +10,7 @@ A Neovim plugin for managing your todo.txt files directly from within Neovim. Th
 - View all tasks in a formatted list
 - Clean and minimal UI with customizable floating windows
 - Native Neovim integration
+- Archive completed tasks to a separate file
 
 ## Installation
 
@@ -33,11 +34,13 @@ The plugin comes with sensible defaults, but you can customize it to your needs:
 ```lua
 require('todo-txt').setup({
     todo_file = vim.fn.expand("~/todo.txt"), -- Path to your todo.txt file
+    done_file = vim.fn.expand("~/done.txt"), -- Optional: Path to your done.txt file (defaults to done.txt in the same directory as todo.txt)
     window = {
         width = 60,     -- Width of the floating window
         height = 10,    -- Height of the floating window
         border = "rounded", -- Border style of windows
     },
+    disable_default_mappings = true -- Disable default key mappings
 })
 ```
 
@@ -52,6 +55,7 @@ require('todo-txt').setup({ disable_default_mappings = true })
 vim.keymap.set("n", "<leader>tt", ":TodoList<CR>", { desc = "Todo List", noremap = true, silent = true })
 vim.keymap.set("n", "<leader>ta", ":TodoAdd<CR>", { desc = "Add Todo", noremap = true, silent = true })
 vim.keymap.set("n", "<leader>td", ":TodoDue<CR>", { desc = "Due Tasks", noremap = true, silent = true })
+vim.keymap.set("n", "<leader>tz", ":TodoArchive<CR>", { desc = "Archive Done Tasks", noremap = true, silent = true })
 ```
 
 ## Usage
@@ -61,6 +65,13 @@ The plugin provides several commands for managing your todos:
 - `:TodoList` - Show all todo items in a floating window
 - `:TodoAdd`  - Open a window to create a new todo item
 - `:TodoDue`  - Show only due tasks in a floating window
+- `:TodoArchive` - Move all completed tasks to done.txt
+
+The :TodoList and :TodoDue will show a list of your todo items in a floating window, with the ability to mark them as complete, edit existing entries or add a priority.
+The :TodoAdd command will open a floating window to create a new todo item. You can also add a todo item by pressing 'a' in the Todo or Due Tasks windows.
+
+When editing or adding a todo item, you can press <enter> to save the changes.
+When you press <esc> you will be in normal mode where <enter> will save and pressing <esc> will cancel.
 
 ## Key Mappings
 
@@ -68,6 +79,7 @@ Default leader key mappings (can be disabled with `disable_default_mappings`):
 - `<leader>tt` - Show todo list
 - `<leader>ta` - Add new todo
 - `<leader>td` - Show due tasks
+- `<leader>tz` - Archive completed tasks
 
 When in the todo list window:
 - `<CR>` - Marks the selected todo item as complete
