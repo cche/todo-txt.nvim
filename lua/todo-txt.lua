@@ -5,8 +5,8 @@ local M = {}
 
 -- Configuration with defaults
 M.config = {
-  todo_file = vim.fn.expand("~/src/github/todo-txt.nvim/todo.txt"),
-  done_file = vim.fn.expand("~/src/github/todo-txt.nvim/done.txt"),
+  todo_file = vim.fn.expand("~/todo.txt"),
+  done_file = nil,
   window = {
     width = math.floor(vim.o.columns * 0.8),
     height = math.floor(vim.o.lines * 0.8),
@@ -55,8 +55,13 @@ end
 -- Helper function to get parent window type
 local function get_window_type(win_id)
   local win_config = win_id and api.nvim_win_get_config(win_id)
-  if win_config and win_config.title and type(win_config.title) == "table" 
-    and win_config.title[1] and type(win_config.title[1]) == "table" then
+  if
+    win_config
+    and win_config.title
+    and type(win_config.title) == "table"
+    and win_config.title[1]
+    and type(win_config.title[1]) == "table"
+  then
     local title = win_config.title[1][1]
     if title == " Due Tasks " then
       return "due"
@@ -474,6 +479,10 @@ end
 -- Set up commands
 function M.setup(opts)
   M.config = vim.tbl_deep_extend("force", M.config, opts or {})
+  M.config.todo_file = vim.fn.expand(M.config.todo_file)
+  if M.config.done_file then
+    M.config.done_file = vim.fn.expand(M.config.done_file)
+  end
 
   -- Set up highlight groups
   highlights.setup()
