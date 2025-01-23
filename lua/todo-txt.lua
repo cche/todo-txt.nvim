@@ -91,7 +91,7 @@ local function update_list_window(entries, window_type, title)
       win_info.buf,
       "n",
       "<CR>",
-      '<cmd>lua require("todo-txt").mark_selected_complete()<CR>',
+      '<cmd>lua require("todo-txt").toggle_selected_complete()<CR>',
       opts
     )
     api.nvim_buf_set_keymap(win_info.buf, "n", "a", '<cmd>lua require("todo-txt").show_add_window()<CR>', opts)
@@ -170,11 +170,12 @@ local function add_entry(entry)
 end
 
 -- Function to mark an entry as complete
-local function mark_complete(index)
+local function toggle_mark_complete(index)
   local entries = M.get_entries()
   if index >= 1 and index <= #entries then
     local entry = entries[index]
-    if not entry:match("^x %d%d%d%d%-%d%d%-%d%d") then
+    -- if not completed mark as completed
+    if not entry:match("^x ") then
       local completion_date = os.date("%Y-%m-%d")
       -- Check if entry has priority and capture both priority letter and rest of the task
       local priority_letter, rest = entry:match("^%(([A-Z])%) (.+)$")
@@ -185,6 +186,20 @@ local function mark_complete(index)
         -- If no priority, add completion mark and date at the start
         entries[index] = "x " .. completion_date .. " " .. entry
       end
+      write_entries(entries)
+      return true
+    end
+    -- Check if completed and it has a priority
+    local priority, rest = entry:match("^x %(([A-Z])%) %d%d%d%d%-%d%d%-%d%d (.+)$")
+    if priority then
+      entries[index] = "(" .. priority .. ") " .. rest
+      write_entries(entries)
+      return true
+    end
+    -- if completed, unmark it
+    rest = entry:match("^x %d%d%d%d%-%d%d%-%d%d (.+)$")
+    if rest then
+      entries[index] = rest
       write_entries(entries)
       return true
     end
@@ -396,12 +411,12 @@ function M.submit_new_entry()
 end
 
 -- Mark selected entry as complete
-function M.mark_selected_complete()
+function M.toggle_selected_complete()
   local current_line = api.nvim_win_get_cursor(0)[1]
   local line_content = api.nvim_buf_get_lines(0, current_line - 1, current_line, false)[1]
   local index = tonumber(line_content:match("^%s*(%d+)%."))
 
-  if index and mark_complete(index) then
+  if index and toggle_mark_complete(index) then
     -- Get the current window type
     local window_type = get_window_type(0)
 
