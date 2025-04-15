@@ -72,6 +72,20 @@ local function get_window_type(win_id)
   return nil
 end
 
+-- Helper function to extract priority and due date
+local function extract_priority_and_due(entry)
+  local text = entry.entry or entry
+  local priority = text:match("^%((%u)%)")
+  local due = text:match("due:(%d%d%d%d%-%d%d%-%d%d)")
+  return priority, due
+end
+
+-- Helper function to get priority value
+local function priority_value(priority)
+  if not priority then return 27 end -- After Z
+  return string.byte(priority) - string.byte('A') + 1
+end
+
 -- Function to update list window contents
 local function update_list_window(entries, window_type, title)
   local win_info = list_windows[window_type]
@@ -377,6 +391,23 @@ end
 -- Display entries in floating window
 function M.show_todo_list()
   local entries = M.get_entries()
+  table.sort(entries, function(a, b)
+    local pa, da = extract_priority_and_due(a)
+    local pb, db = extract_priority_and_due(b)
+    -- Sort by priority
+    if priority_value(pa) ~= priority_value(pb) then
+      return priority_value(pa) < priority_value(pb)
+    end
+    -- Sort by due date (nil last)
+    if da and db then
+      return da < db
+    elseif da then
+      return true
+    elseif db then
+      return false
+    end
+    return false
+  end)
   return update_list_window(entries, "todo", " Todo List ")
 end
 
