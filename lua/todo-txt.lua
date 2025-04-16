@@ -353,7 +353,7 @@ function M.submit_priority()
   -- Close the priority window
   api.nvim_win_close(0, true)
 
-  if set_priority(index, priority) then
+  if M.set_priority(index, priority) then
     -- Get the parent window type and refresh
     local parent_win = vim.fn.win_getid(vim.fn.winnr("#"))
     local window_type = get_window_type(parent_win)
