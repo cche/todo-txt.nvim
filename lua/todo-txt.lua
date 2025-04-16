@@ -396,10 +396,10 @@ function M.show_todo_list()
     table.insert(entries, { entry = line, orig_index = i })
   end
   table.sort(entries, function(a, b)
-    local pa, da = extract_priority_and_due(a)
-    local pb, db = extract_priority_and_due(b)
-    if priority_value(pa) ~= priority_value(pb) then
-      return priority_value(pa) < priority_value(pb)
+    local pa, da = M.extract_priority_and_due(a)
+    local pb, db = M.extract_priority_and_due(b)
+    if M.priority_value(pa) ~= M.priority_value(pb) then
+      return M.priority_value(pa) < M.priority_value(pb)
     end
     if da and db then
       return da < db
@@ -410,50 +410,38 @@ function M.show_todo_list()
     end
     return false
   end)
-  return update_list_window(entries, "todo", " Todo List ")
+  return M.update_list_window(entries, "todo", " Todo List ")
 end
 
--- Display due entries in floating window
 function M.show_due_list()
   local due_entries = get_due_entries()
-  return update_list_window(due_entries, "due", " Due Tasks ")
+  return M.update_list_window(due_entries, "due", " Due Tasks ")
 end
 
--- Show add entry window
 function M.show_add_window()
   local buf, win = create_floating_window(M.config.window.width, 1, " Add Todo ")
-
-  -- Enable insert mode immediately
   vim.cmd("startinsert")
-
-  -- Set keymaps for the add window
   local opts = { noremap = true, silent = true }
   api.nvim_buf_set_keymap(buf, "i", "<CR>", '<Esc><cmd>lua require("todo-txt").submit_new_entry()<CR>', opts)
   api.nvim_buf_set_keymap(buf, "n", "<CR>", '<cmd>lua require("todo-txt").submit_new_entry()<CR>', opts)
   api.nvim_buf_set_keymap(buf, "n", "<Esc>", "<Esc><cmd>q<CR>", opts)
 end
 
--- Submit new entry from add window
 function M.submit_new_entry()
   local lines = api.nvim_buf_get_lines(0, 0, -1, false)
   local entry = lines[1]
-  if add_entry(entry) then
+  if M.add_entry(entry) then
     api.nvim_win_close(0, true)
-    M.show_todo_list() -- Refresh the main todo list
+    M.show_todo_list()
   end
 end
 
--- Mark selected entry as complete
 function M.toggle_selected_complete()
   local current_line = api.nvim_win_get_cursor(0)[1]
   local line_content = api.nvim_buf_get_lines(0, current_line - 1, current_line, false)[1]
   local index = tonumber(line_content:match("^%s*(%d+)%."))
-
-  if index and toggle_mark_complete(index) then
-    -- Get the current window type
+  if index and M.toggle_mark_complete(index) then
     local window_type = get_window_type(0)
-
-    -- Refresh the appropriate view
     if window_type == "due" then
       M.show_due_list()
     else
