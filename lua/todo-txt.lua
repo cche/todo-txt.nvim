@@ -73,21 +73,21 @@ local function get_window_type(win_id)
 end
 
 -- Helper function to extract priority and due date
-local function extract_priority_and_due(entry)
+function M.extract_priority_and_due(entry)
   local text = entry.entry or entry
   local priority = text:match("^%((%u)%)")
   local due = text:match("due:(%d%d%d%d%-%d%d%-%d%d)")
   return priority, due
 end
 
--- Helper function to get priority value
-local function priority_value(priority)
+-- Function to get priority value
+function M.priority_value(priority)
   if not priority then return 27 end -- After Z
   return string.byte(priority) - string.byte('A') + 1
 end
 
 -- Function to update list window contents
-local function update_list_window(entries, window_type, title)
+function M.update_list_window(entries, window_type, title)
   local win_info = list_windows[window_type]
   if not win_info or not win_info.win or not api.nvim_win_is_valid(win_info.win) then
     -- Create new window if it doesn't exist or is invalid
@@ -116,10 +116,10 @@ local function update_list_window(entries, window_type, title)
   -- Clear and update buffer contents
   api.nvim_set_option_value("modifiable", true, { buf = win_info.buf })
 
-  -- Prepare display lines with numbers
+  -- Prepare display lines with original file indexes
   local lines = {}
-  for i, entry in ipairs(entries) do
-    local index = entry.index or i
+  for _, entry in ipairs(entries) do
+    local index = entry.orig_index or entry.index or _
     local display_line = string.format("%2d. %s", index, entry.entry or entry)
     table.insert(lines, display_line)
   end
@@ -171,7 +171,7 @@ local function write_entries(entries)
 end
 
 -- Function to add a new entry to the todo.txt file
-local function add_entry(entry)
+function M.add_entry(entry)
   if entry and entry:match("%S") then -- Check if entry is not empty or just whitespace
     local date = os.date("%Y-%m-%d")
     local formatted_entry = date .. " " .. entry:gsub("^%s*(.-)%s*$", "%1") -- Trim whitespace
@@ -184,7 +184,7 @@ local function add_entry(entry)
 end
 
 -- Function to mark an entry as complete
-local function toggle_mark_complete(index)
+function M.toggle_mark_complete(index)
   local entries = M.get_entries()
   if index >= 1 and index <= #entries then
     local entry = entries[index]
@@ -222,7 +222,7 @@ local function toggle_mark_complete(index)
 end
 
 -- Function to edit an entry
-local function edit_entry(index, new_content)
+function M.edit_entry(index, new_content)
   local entries = M.get_entries()
   if index >= 1 and index <= #entries then
     entries[index] = new_content
@@ -234,7 +234,7 @@ local function edit_entry(index, new_content)
 end
 
 -- Function to set priority of an entry
-local function set_priority(index, priority)
+function M.set_priority(index, priority)
   local entries = M.get_entries()
   if index >= 1 and index <= #entries then
     local entry = entries[index]
@@ -390,15 +390,17 @@ end
 
 -- Display entries in floating window
 function M.show_todo_list()
-  local entries = M.get_entries()
+  local file_entries = M.get_entries()
+  local entries = {}
+  for i, line in ipairs(file_entries) do
+    table.insert(entries, { entry = line, orig_index = i })
+  end
   table.sort(entries, function(a, b)
     local pa, da = extract_priority_and_due(a)
     local pb, db = extract_priority_and_due(b)
-    -- Sort by priority
     if priority_value(pa) ~= priority_value(pb) then
       return priority_value(pa) < priority_value(pb)
     end
-    -- Sort by due date (nil last)
     if da and db then
       return da < db
     elseif da then
