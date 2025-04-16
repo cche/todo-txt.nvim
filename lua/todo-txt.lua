@@ -299,7 +299,7 @@ function M.submit_edit(index)
   local lines = api.nvim_buf_get_lines(0, 0, -1, false)
   local new_content = lines[1]
 
-  local updated_entries = edit_entry(index, new_content)
+  local updated_entries = M.edit_entry(index, new_content)
   if updated_entries then
     -- Get the parent window before closing the edit window
     local parent_win = vim.fn.win_getid(vim.fn.winnr("#"))
