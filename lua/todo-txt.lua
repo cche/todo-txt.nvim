@@ -82,8 +82,10 @@ end
 
 -- Function to get priority value
 function M.priority_value(priority)
-  if not priority then return 27 end -- After Z
-  return string.byte(priority) - string.byte('A') + 1
+  if not priority then
+    return 27
+  end -- After Z
+  return string.byte(priority) - string.byte("A") + 1
 end
 
 -- Function to update list window contents
@@ -171,10 +173,20 @@ local function write_entries(entries)
 end
 
 -- Function to add a new entry to the todo.txt file
-function M.add_entry(entry)
-  if entry and entry:match("%S") then -- Check if entry is not empty or just whitespace
+function M.add_entry(entry, priority)
+  if entry and entry:match("%S") then
     local date = os.date("%Y-%m-%d")
-    local formatted_entry = date .. " " .. entry:gsub("^%s*(.-)%s*$", "%1") -- Trim whitespace
+    local formatted_entry = date
+
+    -- Extract priority if provided
+    if priority and priority:match("^[A-Z]$") then
+      formatted_entry = formatted_entry .. " (" .. priority .. ") "
+    end
+
+    -- Trim whitespace from the task text
+    local task_text = entry:gsub("^%s*(.-)%s*$", "%1")
+    formatted_entry = formatted_entry .. task_text
+
     local entries = M.get_entries()
     table.insert(entries, formatted_entry)
     write_entries(entries)
@@ -430,7 +442,12 @@ end
 function M.submit_new_entry()
   local lines = api.nvim_buf_get_lines(0, 0, -1, false)
   local entry = lines[1]
-  if M.add_entry(entry) then
+
+  -- Extract priority from the entry (if provided)
+  local priority = entry:match("^%((%u)%) (.+)$") and entry:match("^%((%u)%) (.+)$")[1] or nil
+  local task_text = entry:match("^%((%u)%) (.+)$") and entry:match("^%((%u)%) (.+)$")[2] or entry
+
+  if M.add_entry(task_text, priority) then
     api.nvim_win_close(0, true)
     M.show_todo_list()
   end
