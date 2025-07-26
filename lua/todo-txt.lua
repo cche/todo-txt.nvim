@@ -1,6 +1,6 @@
 -- todo.nvim - A Neovim plugin for todo.txt management
 local api = vim.api
-local highlights = require("highlights")
+local storage = require("storage")
 local M = {}
 
 -- Configuration with defaults
@@ -154,34 +154,7 @@ function M.update_list_window(entries, window_type, title)
   return win_info.buf, win_info.win
 end
 
--- Function to get entries from todo.txt file
-function M.get_entries()
-  local file = io.open(M.config.todo_file, "r")
-  if not file then
-    error("Could not open todo.txt file")
-  end
 
-  local entries = {}
-  for line in file:lines() do
-    if line ~= "" then
-      table.insert(entries, line)
-    end
-  end
-  file:close()
-  return entries
-end
-
--- Function to write entries back to file
-local function write_entries(entries)
-  local file = io.open(M.config.todo_file, "w")
-  if not file then
-    error("Could not open todo.txt file for writing")
-  end
-  for _, entry in ipairs(entries) do
-    file:write(entry .. "\n")
-  end
-  file:close()
-end
 
 -- Function to add a new entry to the todo.txt file
 function M.add_entry(entry, priority)
@@ -200,9 +173,9 @@ function M.add_entry(entry, priority)
     local task_text = entry:gsub("^%s*(.-)%s*$", "%1")
     formatted_entry = formatted_entry .. task_text
 
-    local entries = M.get_entries()
+    local entries = storage.get_entries(M.config.todo_file)
     table.insert(entries, formatted_entry)
-    write_entries(entries)
+    storage.write_entries(M.config.todo_file, entries)
     return true
   end
   return false
@@ -507,28 +480,7 @@ function M.toggle_selected_complete()
   end
 end
 
--- Function to get the done file path
-local function get_done_file()
-  -- If done_file is not set, use the same directory as todo_file with "done.txt" name
-  if not M.config.done_file then
-    local todo_dir = vim.fn.fnamemodify(M.config.todo_file, ":h")
-    M.config.done_file = todo_dir .. "/done.txt"
-  end
-  return M.config.done_file
-end
 
--- Function to append entries to done.txt
-local function append_to_done_file(entries)
-  local done_file = get_done_file()
-  local file = io.open(done_file, "a")
-  if not file then
-    error("Could not open done.txt file for writing")
-  end
-  for _, entry in ipairs(entries) do
-    file:write(entry .. "\n")
-  end
-  file:close()
-end
 
 -- Function to archive completed tasks
 function M.archive_done_tasks()
