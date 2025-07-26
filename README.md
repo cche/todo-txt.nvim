@@ -62,6 +62,8 @@ vim.keymap.set("n", "<leader>tz", ":TodoArchive<CR>", { desc = "Archive Done Tas
 
 ## Usage
 
+### Commands
+
 The plugin provides several commands for managing your todos:
 
 - `:TodoList` - Show all todo items in a floating window
@@ -69,11 +71,17 @@ The plugin provides several commands for managing your todos:
 - `:TodoDue`  - Show only due tasks in a floating window
 - `:TodoArchive` - Move all completed tasks to done.txt
 
+### Viewing and Adding tasks
+
 The :TodoList and :TodoDue will show a list of your todo items in a floating window, with the ability to mark them as complete, edit existing entries or add a priority.
 The :TodoAdd command will open a floating window to create a new todo item. You can also add a todo item by pressing 'a' in the Todo or Due Tasks windows.
 
 When editing or adding a todo item, you can press <enter> to save the changes.
 When you press <esc> you will be in normal mode where <enter> will save and pressing <esc> will cancel.
+
+### priorities
+
+To add a priority to a todo item, you can start the item with a letter and a colon. If the item already exists, you can press 'p' when on the task to assign a priority. It has to be a capital letter between A-Z.
 
 ## Key Mappings
 
@@ -89,6 +97,8 @@ When in the todo list window:
 - `e`    - Edit the selected item
 - `a`    - Add a new todo item
 - `p`    - Set priority for the selected item
+- `f`    - Filters the tasks based on the @context or +project your cursor is on.
+- `r`    - Return to the complete list when in the filtered list
 
 When editing a todo item:
 - `<CR>`  - Save changes
@@ -109,9 +119,9 @@ Tasks follow the [todo.txt format](http://todotxt.org/):
 
 Example tasks:
 ```
-(A) 2025-01-13 High priority task due:2025-01-20
-2025-01-13 Normal priority task
+(A) 2025-01-13 High priority task due:2027-01-20
 (B) 2025-01-13 Medium priority task with @context and +project
+2025-01-13 Normal priority task
 ```
 
 ## License

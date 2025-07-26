@@ -106,4 +106,21 @@ describe("todo-txt.nvim plugin", function()
     local last_entry = entries[#entries]
     assert.is_true(last_entry:match("^%(A%) %d%d%d%d%-%d%d%-%d%d My task$") ~= nil)
   end)
+
+  it("filters tasks by tag", function()
+    require("todo-txt").add_entry("Task with @Work tag")
+    require("todo-txt").add_entry("Another task with @Home tag")
+    require("todo-txt").add_entry("Third task with @Work tag")
+
+    local entries = require("todo-txt").get_entries()
+    local items = {}
+    for i, line in ipairs(entries) do
+      table.insert(items, { entry = line, orig_index = i })
+    end
+
+    local filtered = require("filter").filter_by_tag(items, "@Work")
+    assert.are.same(2, #filtered)
+    assert.is_true(filtered[1].entry:match("@Work") ~= nil)
+    assert.is_true(filtered[2].entry:match("@Work") ~= nil)
+  end)
 end)

@@ -113,6 +113,16 @@ function M.update_list_window(entries, window_type, title)
     api.nvim_buf_set_keymap(win_info.buf, "n", "a", '<cmd>lua require("todo-txt").show_add_window()<CR>', opts)
     api.nvim_buf_set_keymap(win_info.buf, "n", "e", '<cmd>lua require("todo-txt").show_edit_window()<CR>', opts)
     api.nvim_buf_set_keymap(win_info.buf, "n", "p", '<cmd>lua require("todo-txt").show_priority_window()<CR>', opts)
+    -- Filter by tag under cursor
+    api.nvim_buf_set_keymap(
+      win_info.buf,
+      "n",
+      "f",
+      '<cmd>lua require("todo-txt-filter-ui").filter_by_tag_under_cursor()<CR>',
+      opts
+    )
+    -- Reset filter (show all)
+    api.nvim_buf_set_keymap(win_info.buf, "n", "r", '<cmd>lua require("todo-txt").show_todo_list()<CR>', opts)
   end
 
   -- Clear and update buffer contents
