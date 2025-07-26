@@ -5,12 +5,14 @@ A Neovim plugin for managing your todo.txt files directly from within Neovim. Th
 ## Features
 
 - Create and manage todo items with automatic date prefixing
+- Add priority to the task at creation by starting with the priority and a colon "A: new task"
 - Mark tasks as complete with completion dates
 - Edit existing tasks through a floating window interface
-- View all tasks in a formatted list
+- View all tasks in a sorted list
 - Clean and minimal UI with customizable floating windows
 - Native Neovim integration
 - Archive completed tasks to a separate file
+- Add or change task priorities
 
 ## Installation
 

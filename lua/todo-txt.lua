@@ -176,12 +176,14 @@ end
 function M.add_entry(entry, priority)
   if entry and entry:match("%S") then
     local date = os.date("%Y-%m-%d")
-    local formatted_entry = date
+    local formatted_entry = ""
 
     -- Extract priority if provided
     if priority and priority:match("^[A-Z]$") then
-      formatted_entry = formatted_entry .. " (" .. priority .. ") "
+      formatted_entry = formatted_entry .. "(" .. priority .. ") "
     end
+
+    formatted_entry = formatted_entry .. date .. " "
 
     -- Trim whitespace from the task text
     local task_text = entry:gsub("^%s*(.-)%s*$", "%1")
@@ -444,8 +446,11 @@ function M.submit_new_entry()
   local entry = lines[1]
 
   -- Extract priority from the entry (if provided)
-  local priority = entry:match("^%((%u)%) (.+)$") and entry:match("^%((%u)%) (.+)$")[1] or nil
-  local task_text = entry:match("^%((%u)%) (.+)$") and entry:match("^%((%u)%) (.+)$")[2] or entry
+  local priority, task_text = entry:match("^([A-Z]):%s*(.+)$")
+
+  if not priority then
+    task_text = entry
+  end
 
   if M.add_entry(task_text, priority) then
     api.nvim_win_close(0, true)

@@ -99,4 +99,11 @@ describe("todo-txt.nvim plugin", function()
     entry = todo.get_entries()[idx]
     assert.is_true(entry:find("^x ") == nil)
   end)
+
+  it("creates a task with priority", function()
+    require("todo-txt").add_entry("My task", "A")
+    local entries = require("todo-txt").get_entries()
+    local last_entry = entries[#entries]
+    assert.is_true(last_entry:match("^%(A%) %d%d%d%d%-%d%d%-%d%d My task$") ~= nil)
+  end)
 end)
