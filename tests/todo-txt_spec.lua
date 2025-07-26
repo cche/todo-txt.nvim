@@ -123,4 +123,13 @@ describe("todo-txt.nvim plugin", function()
     assert.is_true(filtered[1].entry:match("@Work") ~= nil)
     assert.is_true(filtered[2].entry:match("@Work") ~= nil)
   end)
+
+  it("deletes a task", function()
+    require("todo-txt").add_entry("Task to be deleted")
+    local entries = require("todo-txt").get_entries()
+    local num_entries_before = #entries
+    require("todo-txt").delete_entry(num_entries_before)
+    local entries_after = require("todo-txt").get_entries()
+    assert.are.same(num_entries_before - 1, #entries_after)
+  end)
 end)

@@ -121,6 +121,7 @@ function M.update_list_window(entries, window_type, title)
       '<cmd>lua require("todo-txt-filter-ui").filter_by_tag_under_cursor()<CR>',
       opts
     )
+    api.nvim_buf_set_keymap(win_info.buf, "n", "dd", '<cmd>lua require("todo-txt").delete_selected_entry()<CR>', opts)
     -- Reset filter (show all)
     api.nvim_buf_set_keymap(win_info.buf, "n", "r", '<cmd>lua require("todo-txt").show_todo_list()<CR>', opts)
   end
@@ -241,6 +242,16 @@ function M.toggle_mark_complete(index)
       write_entries(entries)
       return true
     end
+  end
+  return false
+end
+
+function M.delete_entry(index)
+  local entries = M.get_entries()
+  if index >= 1 and index <= #entries then
+    table.remove(entries, index)
+    write_entries(entries)
+    return true
   end
   return false
 end
@@ -465,6 +476,20 @@ function M.submit_new_entry()
   if M.add_entry(task_text, priority) then
     api.nvim_win_close(0, true)
     M.show_todo_list()
+  end
+end
+
+function M.delete_selected_entry()
+  local current_line = api.nvim_win_get_cursor(0)[1]
+  local line_content = api.nvim_buf_get_lines(0, current_line - 1, current_line, false)[1]
+  local index = tonumber(line_content:match("^%s*(%d+)%."))
+  if index and M.delete_entry(index) then
+    local window_type = get_window_type(0)
+    if window_type == "due" then
+      M.show_due_list()
+    else
+      M.show_todo_list()
+    end
   end
 end
 
