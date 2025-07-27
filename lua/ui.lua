@@ -96,7 +96,7 @@ function M.update_list_window(entries, window_type, title)
       win_info.buf,
       "n",
       "f",
-      '<cmd>lua require("todo-txt-filter-ui").filter_by_tag_under_cursor()<CR>',
+      '<cmd>lua require("todo-txt").filter_by_tag_under_cursor()<CR>',
       opts
     )
     api.nvim_buf_set_keymap(win_info.buf, "n", "dd", '<cmd>lua require("todo-txt").delete_selected_entry()<CR>', opts)

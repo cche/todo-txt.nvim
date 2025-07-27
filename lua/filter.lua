@@ -10,8 +10,7 @@ function M.filter_by_tag(entries, tag)
 
   local filtered = {}
   for _, item in ipairs(entries) do
-    local text = item.entry or item
-    for word in text:gmatch("%S+") do
+    for word in item.entry:gmatch("%S+") do
       if word == tag then
         table.insert(filtered, item)
         break
