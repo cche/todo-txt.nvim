@@ -21,4 +21,24 @@ function M.filter_by_tag(entries, tag)
   return filtered
 end
 
+function M.get_due_entries(entries)
+  local due_entries = {}
+
+  for i, entry in ipairs(entries) do
+    if entry:match("due:%d%d%d%d%-%d%d%-%d%d") then
+      -- Keep the original index for marking as complete
+      table.insert(due_entries, { index = i, entry = entry })
+    end
+  end
+
+  -- Sort by due date
+  table.sort(due_entries, function(a, b)
+    local date_a = a.entry:match("due:(%d%d%d%d%-%d%d%-%d%d)")
+    local date_b = b.entry:match("due:(%d%d%d%d%-%d%d%-%d%d)")
+    return date_a < date_b
+  end)
+
+  return due_entries
+end
+
 return M
