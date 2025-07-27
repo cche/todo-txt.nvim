@@ -1,12 +1,17 @@
 local todo = require("todo-txt")
+local task = require("task")
 local storage = require("storage")
 local test_todo_file = "/tmp/todo-txt-test.txt"
 local test_done_file = "/tmp/todo-txt-done.txt"
 
 describe("todo-txt.nvim plugin", function()
   before_each(function()
-    todo.config.todo_file = test_todo_file
-    todo.config.done_file = test_done_file
+    local config = {
+      todo_file = test_todo_file,
+      done_file = test_done_file,
+    }
+    todo.config = config
+    task.setup(config)
     -- Clear files before each test
     local f = io.open(test_todo_file, "w")
     if f then
@@ -70,52 +75,52 @@ describe("todo-txt.nvim plugin", function()
 
   it("adds a new entry", function()
     local before = #storage.get_entries(test_todo_file)
-    todo.add_entry("New Task")
+    task.add_entry("New Task")
     local after = #storage.get_entries(test_todo_file)
     assert.are.same(before + 1, after)
     assert.is_true(storage.get_entries(test_todo_file)[after]:match("New Task") == "New Task")
   end)
 
   it("adds a priority to a task", function()
-    todo.add_entry("Task with no priority")
+    task.add_entry("Task with no priority")
     local idx = #storage.get_entries(test_todo_file)
     local entry = storage.get_entries(test_todo_file)[idx]
     entry = entry:gsub("^%([A-Z]%) ", "")
-    todo.edit_entry(idx, "(A) " .. entry)
+    task.edit_entry(idx, "(A) " .. entry)
     local new_entry = storage.get_entries(test_todo_file)[idx]
     assert.is_true(new_entry:match("%(A%)") == "(A)")
   end)
 
   it("edits a task", function()
-    todo.add_entry("Task to edit")
+    task.add_entry("Task to edit")
     local idx = #storage.get_entries(test_todo_file)
-    todo.edit_entry(idx, "Edited Task")
+    task.edit_entry(idx, "Edited Task")
     local entry = storage.get_entries(test_todo_file)[idx]
     assert.equals(entry, "Edited Task")
   end)
 
   it("marks a task as complete and toggles", function()
-    todo.add_entry("Task to complete")
+    task.add_entry("Task to complete")
     local idx = #storage.get_entries(test_todo_file)
-    todo.toggle_mark_complete(idx)
+    task.toggle_mark_complete(idx)
     local entry = storage.get_entries(test_todo_file)[idx]
     assert.equals(entry:match("^x "), "x ")
-    todo.toggle_mark_complete(idx)
+    task.toggle_mark_complete(idx)
     entry = storage.get_entries(test_todo_file)[idx]
     assert.is_true(entry:find("^x ") == nil)
   end)
 
   it("creates a task with priority", function()
-    require("todo-txt").add_entry("My task", "A")
+    task.add_entry("My task", "A")
     local entries = require("storage").get_entries(test_todo_file)
     local last_entry = entries[#entries]
     assert.is_true(last_entry:match("^%(A%) %d%d%d%d%-%d%d%-%d%d My task$") ~= nil)
   end)
 
   it("filters tasks by tag", function()
-    require("todo-txt").add_entry("Task with @Work tag")
-    require("todo-txt").add_entry("Another task with @Home tag")
-    require("todo-txt").add_entry("Third task with @Work tag")
+    task.add_entry("Task with @Work tag")
+    task.add_entry("Another task with @Home tag")
+    task.add_entry("Third task with @Work tag")
 
     local entries = require("storage").get_entries(test_todo_file)
     local items = {}
@@ -130,10 +135,10 @@ describe("todo-txt.nvim plugin", function()
   end)
 
   it("deletes a task", function()
-    require("todo-txt").add_entry("Task to be deleted")
+    task.add_entry("Task to be deleted")
     local entries = require("storage").get_entries(test_todo_file)
     local num_entries_before = #entries
-    require("todo-txt").delete_entry(num_entries_before)
+    task.delete_entry(num_entries_before)
     local entries_after = require("storage").get_entries(test_todo_file)
     assert.are.same(num_entries_before - 1, #entries_after)
   end)
