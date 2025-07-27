@@ -183,7 +183,7 @@ end
 
 -- Function to mark an entry as complete
 function M.toggle_mark_complete(index)
-  local entries = M.get_entries()
+  local entries = storage.get_entries(M.config.todo_file)
   if index >= 1 and index <= #entries then
     local entry = entries[index]
     -- if not completed mark as completed
@@ -198,21 +198,21 @@ function M.toggle_mark_complete(index)
         -- If no priority, add completion mark and date at the start
         entries[index] = "x " .. completion_date .. " " .. entry
       end
-      write_entries(entries)
+      storage.write_entries(M.config.todo_file, entries)
       return true
     end
     -- Check if completed and it has a priority
     local priority, rest = entry:match("^x %(([A-Z])%) %d%d%d%d%-%d%d%-%d%d (.+)$")
     if priority then
       entries[index] = "(" .. priority .. ") " .. rest
-      write_entries(entries)
+      storage.write_entries(M.config.todo_file, entries)
       return true
     end
     -- if completed, unmark it
     rest = entry:match("^x %d%d%d%d%-%d%d%-%d%d (.+)$")
     if rest then
       entries[index] = rest
-      write_entries(entries)
+      storage.write_entries(M.config.todo_file, entries)
       return true
     end
   end
@@ -220,10 +220,10 @@ function M.toggle_mark_complete(index)
 end
 
 function M.delete_entry(index)
-  local entries = M.get_entries()
+  local entries = storage.get_entries(M.config.todo_file)
   if index >= 1 and index <= #entries then
     table.remove(entries, index)
-    write_entries(entries)
+    storage.write_entries(M.config.todo_file, entries)
     return true
   end
   return false
@@ -231,10 +231,10 @@ end
 
 -- Function to edit an entry
 function M.edit_entry(index, new_content)
-  local entries = M.get_entries()
+  local entries = storage.get_entries(M.config.todo_file)
   if index >= 1 and index <= #entries then
     entries[index] = new_content
-    write_entries(entries)
+    storage.write_entries(M.config.todo_file, entries)
     -- Check if this should be returned.
     return entries
   end
@@ -243,7 +243,7 @@ end
 
 -- Function to set priority of an entry
 function M.set_priority(index, priority)
-  local entries = M.get_entries()
+  local entries = storage.get_entries(M.config.todo_file)
   if index >= 1 and index <= #entries then
     local entry = entries[index]
     -- Remove existing priority if any
@@ -253,7 +253,7 @@ function M.set_priority(index, priority)
       entry = "(" .. priority .. ") " .. entry
     end
     entries[index] = entry
-    write_entries(entries)
+    storage.write_entries(M.config.todo_file, entries)
     return true
   end
   return false
@@ -270,7 +270,7 @@ function M.show_edit_window()
   end
 
   -- Get the original entry without the line number prefix
-  local entries = M.get_entries()
+  local entries = storage.get_entries(M.config.todo_file)
   local original_entry = entries[index]
 
   -- Create edit window
@@ -376,7 +376,7 @@ end
 
 -- Function to filter entries by due date
 local function get_due_entries()
-  local entries = M.get_entries()
+  local entries = storage.get_entries(M.config.todo_file)
   local due_entries = {}
 
   for i, entry in ipairs(entries) do
@@ -398,7 +398,7 @@ end
 
 -- Display entries in floating window
 function M.show_todo_list()
-  local file_entries = M.get_entries()
+  local file_entries = storage.get_entries(M.config.todo_file)
   local entries = {}
   for i, line in ipairs(file_entries) do
     table.insert(entries, { entry = line, orig_index = i })
@@ -484,7 +484,7 @@ end
 
 -- Function to archive completed tasks
 function M.archive_done_tasks()
-  local entries = M.get_entries()
+  local entries = storage.get_entries(M.config.todo_file)
   local remaining_entries = {}
   local done_entries = {}
 
@@ -500,10 +500,10 @@ function M.archive_done_tasks()
   -- If we found completed tasks
   if #done_entries > 0 then
     -- Write remaining tasks back to todo.txt
-    write_entries(remaining_entries)
+    storage.write_entries(M.config.todo_file, remaining_entries)
 
     -- Append completed tasks to done.txt
-    append_to_done_file(done_entries)
+    storage.append_to_done_file(M.config.done_file, done_entries)
 
     -- Refresh the current view
     local window_type = get_window_type(0)
