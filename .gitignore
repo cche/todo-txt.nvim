@@ -2,4 +2,5 @@ todo.txt
 done.txt
 notes.md
 .editorconfig
-.vscode
+.vscodetests/init.lua
+tests/init.vim
