@@ -23,6 +23,7 @@ Using [lazy.nvim](https://github.com/folke/lazy.nvim):
     'cche/todo-txt.nvim',
     dependencies = {
         'hrsh7th/nvim-cmp'
+    },
     config = function()
         require('todo-txt').setup()
     end
