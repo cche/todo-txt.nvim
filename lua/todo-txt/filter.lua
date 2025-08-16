@@ -1,3 +1,4 @@
+local parser = require("todo-txt.parser")
 local M = {}
 
 -- Returns a filtered list of entries (table of {entry=..., orig_index=...}) that match the given context or project tag
@@ -8,13 +9,12 @@ function M.filter_by_tag(entries, tag)
     return {}
   end
 
+  local key = tag:sub(2)
   local filtered = {}
   for _, item in ipairs(entries) do
-    for word in item.entry:gmatch("%S+") do
-      if word == tag then
-        table.insert(filtered, item)
-        break
-      end
+    local contexts, projects = parser.extract_tags(item.entry)
+    if (is_context and contexts[key]) or (is_project and projects[key]) then
+      table.insert(filtered, item)
     end
   end
   return filtered

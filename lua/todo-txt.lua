@@ -5,6 +5,8 @@ local task = require("todo-txt.task")
 local ui = require("todo-txt.ui")
 local filter = require("todo-txt.filter")
 local highlights = require("todo-txt.highlights")
+local parser = require("todo-txt.parser")
+local sortmod = require("todo-txt.sort")
 local M = {}
 
 -- Configuration with defaults
@@ -35,7 +37,7 @@ local function get_tag_under_cursor()
     search_start = stop + 1
   end
   for _, t in ipairs(tags) do
-    if col >= t.start and col <= t.stop then
+    if (col >= t.start and col <= t.stop) or (col == t.stop + 1) then
       return t.tag
     end
   end
@@ -65,8 +67,8 @@ end
 -- Helper function to extract priority and due date
 function M.extract_priority_and_due(entry)
   local text = entry.entry or entry
-  local priority = text:match("^%((%u)%)")
-  local due = text:match("due:(%d%d%d%d%-%d%d%-%d%d)")
+  local priority = parser.extract_priority(text)
+  local due = parser.extract_due(text)
   return priority, due
 end
 
@@ -160,21 +162,7 @@ function M.show_todo_list()
   for i, line in ipairs(file_entries) do
     table.insert(entries, { entry = line, orig_index = i })
   end
-  table.sort(entries, function(a, b)
-    local pa, da = M.extract_priority_and_due(a)
-    local pb, db = M.extract_priority_and_due(b)
-    if M.priority_value(pa) ~= M.priority_value(pb) then
-      return M.priority_value(pa) < M.priority_value(pb)
-    end
-    if da and db then
-      return da < db
-    elseif da then
-      return true
-    elseif db then
-      return false
-    end
-    return false
-  end)
+  sortmod.sort_entries(entries)
   return ui.update_list_window(entries, "todo", " Todo List ")
 end
 
