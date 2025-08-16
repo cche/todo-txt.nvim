@@ -23,11 +23,22 @@ function M.get_highlights(line_nr, line)
   local regions = {}
 
   -- Highlight line number
-  table.insert(regions, {
-    group = "TodoNumber",
-    start_col = 0,
-    end_col = 3,
-  })
+  do
+    local _, e = line:find("^%s*%d+%.%s")
+    if e then
+      table.insert(regions, {
+        group = "TodoNumber",
+        start_col = 0,
+        end_col = e,
+      })
+    else
+      table.insert(regions, {
+        group = "TodoNumber",
+        start_col = 0,
+        end_col = 3,
+      })
+    end
+  end
 
   -- Check if task is completed
   --[[
@@ -69,9 +80,9 @@ function M.get_highlights(line_nr, line)
     })
   end
 
-  -- Highlight projects (+project)
-  for start_idx in line:gmatch("()%+%w+") do
-    local project = line:match("^%+%w+", start_idx)
+  -- Highlight projects (+project), allow letters, digits, _ and -
+  for start_idx in line:gmatch("()%+[%w_%-]+") do
+    local project = line:match("^%+[%w_%-]+", start_idx)
     if project then
       table.insert(regions, {
         group = "TodoProject",
@@ -82,8 +93,8 @@ function M.get_highlights(line_nr, line)
   end
 
   -- Highlight contexts (@context)
-  for start_idx in line:gmatch("()@%w+") do
-    local context = line:match("^@%w+", start_idx)
+  for start_idx in line:gmatch("()@[%w_%-]+") do
+    local context = line:match("^@[%w_%-]+", start_idx)
     if context then
       table.insert(regions, {
         group = "TodoContext",

@@ -1,8 +1,10 @@
 local todo = require("todo-txt")
 local task = require("task")
 local storage = require("storage")
-local test_todo_file = "/tmp/todo-txt-test.txt"
-local test_done_file = "/tmp/todo-txt-done.txt"
+local root = vim.loop.cwd()
+-- Use spec-specific files to avoid interference with other specs
+local test_todo_file = root .. "/todo_spec.txt"
+local test_done_file = root .. "/done_spec.txt"
 
 describe("todo-txt.nvim plugin", function()
   before_each(function()
@@ -24,8 +26,8 @@ describe("todo-txt.nvim plugin", function()
   end)
 
   after_each(function()
-    os.remove(test_todo_file)
-    os.remove(test_done_file)
+    pcall(vim.loop.fs_unlink, test_todo_file)
+    pcall(vim.loop.fs_unlink, test_done_file)
   end)
 
   it("sorts the todo list by priority and due date", function()

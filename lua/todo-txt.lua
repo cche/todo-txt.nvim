@@ -184,6 +184,10 @@ function M.show_due_list()
   return ui.update_list_window(due_entries, "due", " Due Tasks ")
 end
 
+function M.get_entries()
+  return storage.get_entries(M.config.todo_file)
+end
+
 function M.show_add_window()
   ui.show_add_window()
 end
@@ -237,7 +241,16 @@ end
 function M.setup(opts)
   M.config = vim.tbl_deep_extend("force", M.config, opts or {})
   M.config.todo_file = vim.fn.expand(M.config.todo_file)
-  if M.config.done_file then
+  if not M.config.done_file or M.config.done_file == "" then
+    local dir
+    if vim.fs and vim.fs.dirname then
+      dir = vim.fs.dirname(M.config.todo_file)
+      M.config.done_file = vim.fs.joinpath(dir, "done.txt")
+    else
+      dir = vim.fn.fnamemodify(M.config.todo_file, ":h")
+      M.config.done_file = dir .. "/done.txt"
+    end
+  else
     M.config.done_file = vim.fn.expand(M.config.done_file)
   end
 

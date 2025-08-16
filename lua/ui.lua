@@ -10,6 +10,9 @@ local list_windows = {
   due = { buf = nil, win = nil },
 }
 
+-- Create a single namespace for this plugin's highlights
+local NS_ID = api.nvim_create_namespace("todo_txt_highlights")
+
 function M.setup(opts)
   config = opts
 end
@@ -48,6 +51,12 @@ end
 
 -- Helper function to get parent window type
 function M.get_window_type(win_id)
+  if win_id and api.nvim_win_is_valid(win_id) then
+    local ok, val = pcall(api.nvim_win_get_var, win_id, "todo_txt_window_type")
+    if ok and type(val) == "string" then
+      return val
+    end
+  end
   local win_config = win_id and api.nvim_win_get_config(win_id)
   if
     win_config
@@ -74,6 +83,8 @@ function M.update_list_window(entries, window_type, title)
     local buf, win = create_floating_window(nil, nil, title)
     win_info = { buf = buf, win = win }
     list_windows[window_type] = win_info
+    -- Track window type robustly
+    pcall(api.nvim_win_set_var, win, "todo_txt_window_type", window_type)
 
     -- Set buffer filetype
     vim.bo[buf].filetype = "todo"
@@ -109,8 +120,8 @@ function M.update_list_window(entries, window_type, title)
 
   -- Prepare display lines with original file indexes
   local lines = {}
-  for _, entry in ipairs(entries) do
-    local index = entry.orig_index or entry.index or _
+  for i, entry in ipairs(entries) do
+    local index = entry.orig_index or entry.index or i
     local display_line = string.format("%2d. %s", index, entry.entry or entry)
     table.insert(lines, display_line)
   end
@@ -118,13 +129,12 @@ function M.update_list_window(entries, window_type, title)
   api.nvim_buf_set_lines(win_info.buf, 0, -1, false, lines)
 
   -- Apply syntax highlighting
-  api.nvim_buf_clear_namespace(win_info.buf, -1, 0, -1)
-  local ns_id = api.nvim_create_namespace("todo_highlights")
+  api.nvim_buf_clear_namespace(win_info.buf, NS_ID, 0, -1)
 
   for i, line in ipairs(lines) do
     local regions = highlights.get_highlights(i, line)
     for _, region in ipairs(regions) do
-      api.nvim_buf_add_highlight(win_info.buf, ns_id, region.group, i - 1, region.start_col, region.end_col)
+      api.nvim_buf_add_highlight(win_info.buf, NS_ID, region.group, i - 1, region.start_col, region.end_col)
     end
   end
 

@@ -13,11 +13,11 @@ local function get_completions()
 
 	for _, entry in ipairs(entries) do
 		-- Find all contexts (@context)
-		for context in entry:gmatch("@(%w+)") do
+		for context in entry:gmatch("@([%w_%-]+)") do
 			contexts[context] = true
 		end
 		-- Find all projects (+project)
-		for project in entry:gmatch("%+(%w+)") do
+		for project in entry:gmatch("%+([%w_%-]+)") do
 			projects[project] = true
 		end
 	end
@@ -33,17 +33,23 @@ source.get_trigger_characters = function()
 end
 
 source.get_keyword_pattern = function()
-	return [[\k*]]
+	return [[[\w\-]*]]
 end
 
 -- Check if we're in the add window
 function source.is_available()
-	local win_config = vim.api.nvim_win_get_config(0)
-	return win_config.title 
-		and type(win_config.title) == "table"
-		and win_config.title[1]
-		and type(win_config.title[1]) == "table"
-		and (win_config.title[1][1] == " Add Todo " or win_config.title[1][1] == " Edit Todo ")
+    -- Prefer window variable set by ui.lua
+    local ok, wt = pcall(vim.api.nvim_win_get_var, 0, "todo_txt_window_type")
+    if ok and (wt == "add" or wt == "edit") then
+        return true
+    end
+    -- Fallback to title inspection
+    local win_config = vim.api.nvim_win_get_config(0)
+    return win_config.title 
+    	and type(win_config.title) == "table"
+    	and win_config.title[1]
+    	and type(win_config.title[1]) == "table"
+    	and (win_config.title[1][1] == " Add Todo " or win_config.title[1][1] == " Edit Todo ")
 end
 
 source.complete = function(self, params, callback)
@@ -58,7 +64,7 @@ source.complete = function(self, params, callback)
 
 	-- Get the current input
 	local line = params.context.cursor_before_line
-	local current_word = string.match(line, "[@+]%w*$")
+	local current_word = string.match(line, "[@+][%w_%-]*$")
 
 	if not current_word then
 		callback(items)

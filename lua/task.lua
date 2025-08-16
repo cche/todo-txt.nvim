@@ -37,6 +37,13 @@ end
 -- Function to mark an entry as complete
 function M.toggle_mark_complete(index)
   local entries = storage.get_entries(config.todo_file)
+  if index < 1 or index > #entries then
+    vim.notify(
+      string.format("todo-txt: toggle_mark_complete() invalid index %s (entries: %d)", tostring(index), #entries),
+      vim.log.levels.ERROR
+    )
+    return false
+  end
   if index >= 1 and index <= #entries then
     local entry = entries[index]
     -- if not completed mark as completed
@@ -68,6 +75,10 @@ function M.toggle_mark_complete(index)
       storage.write_entries(config.todo_file, entries)
       return true
     end
+    vim.notify(
+      string.format("todo-txt: toggle_mark_complete() could not toggle entry at index %d (unexpected format)", index),
+      vim.log.levels.WARN
+    )
   end
   return false
 end
@@ -79,6 +90,10 @@ function M.delete_entry(index)
     storage.write_entries(config.todo_file, entries)
     return true
   end
+  vim.notify(
+    string.format("todo-txt: delete_entry() invalid index %s (entries: %d)", tostring(index), #entries),
+    vim.log.levels.ERROR
+  )
   return false
 end
 
@@ -91,6 +106,10 @@ function M.edit_entry(index, new_content)
     -- Check if this should be returned.
     return entries
   end
+  vim.notify(
+    string.format("todo-txt: edit_entry() invalid index %s (entries: %d)", tostring(index), #entries),
+    vim.log.levels.ERROR
+  )
   return nil
 end
 
@@ -109,6 +128,10 @@ function M.set_priority(index, priority)
     storage.write_entries(config.todo_file, entries)
     return true
   end
+  vim.notify(
+    string.format("todo-txt: set_priority() invalid index %s (entries: %d)", tostring(index), #entries),
+    vim.log.levels.ERROR
+  )
   return false
 end
 
@@ -139,6 +162,7 @@ function M.archive_done_tasks()
     return #done_entries
   end
 
+  vim.notify("todo-txt: archive_done_tasks() found no completed tasks to archive", vim.log.levels.INFO)
   return 0
 end
 
