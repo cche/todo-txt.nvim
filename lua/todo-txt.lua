@@ -1,10 +1,10 @@
 -- todo.nvim - A Neovim plugin for todo.txt management
 local api = vim.api
-local storage = require("storage")
-local task = require("task")
-local ui = require("ui")
-local filter = require("filter")
-local highlights = require("highlights")
+local storage = require("todo-txt.storage")
+local task = require("todo-txt.task")
+local ui = require("todo-txt.ui")
+local filter = require("todo-txt.filter")
+local highlights = require("todo-txt.highlights")
 local M = {}
 
 -- Configuration with defaults

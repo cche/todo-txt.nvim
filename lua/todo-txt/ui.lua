@@ -1,6 +1,6 @@
--- lua/ui.lua
+-- lua/todo-txt/ui.lua
 local api = vim.api
-local highlights = require("highlights")
+local highlights = require("todo-txt.highlights")
 
 local M = {}
 

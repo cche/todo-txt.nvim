@@ -30,6 +30,40 @@ Using [lazy.nvim](https://github.com/folke/lazy.nvim):
 }
 ```
 
+## Breaking changes
+
+The internal modules have been migrated to a proper namespace under `lua/todo-txt/`.
+
+- Top-level modules were removed: `lua/storage.lua`, `lua/task.lua`, `lua/filter.lua`, `lua/highlights.lua`, `lua/parser.lua`, `lua/ui.lua`.
+- If your config or custom code required those top-level modules directly, update the require paths to the new namespace.
+
+Before:
+
+```lua
+local storage = require("storage")
+local task = require("task")
+local filter = require("filter")
+local highlights = require("highlights")
+local parser = require("parser")
+local ui = require("ui")
+```
+
+After:
+
+```lua
+local storage = require("todo-txt.storage")
+local task = require("todo-txt.task")
+local filter = require("todo-txt.filter")
+local highlights = require("todo-txt.highlights")
+local parser = require("todo-txt.parser")
+local ui = require("todo-txt.ui")
+```
+
+Notes:
+
+- The public entrypoint remains `require("todo-txt")` and is unchanged.
+- Tests and internal code have been updated accordingly.
+
 ## Configuration
 
 The plugin comes with sensible defaults, but you can customize it to your needs:

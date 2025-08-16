@@ -1,5 +1,5 @@
--- lua/task.lua
-local storage = require("storage")
+-- lua/todo-txt/task.lua
+local storage = require("todo-txt.storage")
 
 local M = {}
 

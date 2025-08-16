@@ -41,17 +41,6 @@ function M.get_highlights(line_nr, line)
   end
 
   -- Check if task is completed
-  --[[
-  if line:match("^%s*%d+%. x %d%d%d%d%-%d%d%-%d%d") then
-		table.insert(regions, {
-			group = "TodoCompleted",
-			start_col = 4,
-			end_col = -1,
-		})
-		return regions
-	end
-  ]]
-
   if line:match("^%s*%d+%. x") then
     table.insert(regions, {
       group = "TodoCompleted",

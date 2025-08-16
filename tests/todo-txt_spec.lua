@@ -1,6 +1,6 @@
 local todo = require("todo-txt")
-local task = require("task")
-local storage = require("storage")
+local task = require("todo-txt.task")
+local storage = require("todo-txt.storage")
 local root = vim.loop.cwd()
 -- Use spec-specific files to avoid interference with other specs
 local test_todo_file = root .. "/todo_spec.txt"
@@ -114,7 +114,7 @@ describe("todo-txt.nvim plugin", function()
 
   it("creates a task with priority", function()
     task.add_entry("My task", "A")
-    local entries = require("storage").get_entries(test_todo_file)
+    local entries = require("todo-txt.storage").get_entries(test_todo_file)
     local last_entry = entries[#entries]
     assert.is_true(last_entry:match("^%(A%) %d%d%d%d%-%d%d%-%d%d My task$") ~= nil)
   end)
@@ -124,13 +124,13 @@ describe("todo-txt.nvim plugin", function()
     task.add_entry("Another task with @Home tag")
     task.add_entry("Third task with @Work tag")
 
-    local entries = require("storage").get_entries(test_todo_file)
+    local entries = require("todo-txt.storage").get_entries(test_todo_file)
     local items = {}
     for i, line in ipairs(entries) do
       table.insert(items, { entry = line, orig_index = i })
     end
 
-    local filtered = require("filter").filter_by_tag(items, "@Work")
+    local filtered = require("todo-txt.filter").filter_by_tag(items, "@Work")
     assert.are.same(2, #filtered)
     assert.is_true(filtered[1].entry:match("@Work") ~= nil)
     assert.is_true(filtered[2].entry:match("@Work") ~= nil)
@@ -138,10 +138,10 @@ describe("todo-txt.nvim plugin", function()
 
   it("deletes a task", function()
     task.add_entry("Task to be deleted")
-    local entries = require("storage").get_entries(test_todo_file)
+    local entries = require("todo-txt.storage").get_entries(test_todo_file)
     local num_entries_before = #entries
     task.delete_entry(num_entries_before)
-    local entries_after = require("storage").get_entries(test_todo_file)
+    local entries_after = require("todo-txt.storage").get_entries(test_todo_file)
     assert.are.same(num_entries_before - 1, #entries_after)
   end)
 end)

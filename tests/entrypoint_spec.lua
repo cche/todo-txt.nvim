@@ -1,6 +1,6 @@
 local todo = require("todo-txt")
-local task = require("task")
-local storage = require("storage")
+local task = require("todo-txt.task")
+local storage = require("todo-txt.storage")
 
 describe("todo-txt public API and defaults", function()
   local test_dir

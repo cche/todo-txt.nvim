@@ -1,4 +1,4 @@
--- lua/storage.lua
+-- lua/todo-txt/storage.lua
 local M = {}
 
 -- Function to get entries from todo.txt file
