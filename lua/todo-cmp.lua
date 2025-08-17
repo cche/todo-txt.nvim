@@ -1,5 +1,6 @@
 local source = {}
 local todo = require("todo-txt")
+local parser = require("todo-txt.parser")
 
 source.new = function()
 	return setmetatable({}, { __index = source })
@@ -7,25 +8,20 @@ end
 
 -- Get all unique contexts and projects from the todo file
 local function get_completions()
-	local entries = todo.get_entries()
-	local contexts = {}
-	local projects = {}
+    local entries = todo.get_entries()
+    local contexts = {}
+    local projects = {}
 
-	for _, entry in ipairs(entries) do
-		-- Find all contexts (@context)
-		for context in entry:gmatch("@([%w_%-]+)") do
-			contexts[context] = true
-		end
-		-- Find all projects (+project)
-		for project in entry:gmatch("%+([%w_%-]+)") do
-			projects[project] = true
-		end
-	end
+    for _, entry in ipairs(entries) do
+        local ctxs, projs = parser.extract_tags(entry)
+        for k in pairs(ctxs) do contexts[k] = true end
+        for k in pairs(projs) do projects[k] = true end
+    end
 
-	return {
-		contexts = vim.tbl_keys(contexts),
-		projects = vim.tbl_keys(projects),
-	}
+    return {
+        contexts = vim.tbl_keys(contexts),
+        projects = vim.tbl_keys(projects),
+    }
 end
 
 source.get_trigger_characters = function()
