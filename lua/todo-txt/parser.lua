@@ -39,6 +39,29 @@ function M.extract_tags(line)
   return contexts, projects
 end
 
+-- Return positional info for tags for highlighting
+-- Each item: { kind = 'context'|'project', start_col = <0-based>, end_col = <exclusive> }
+function M.extract_tag_positions(line)
+  local positions = {}
+  for start_idx, word in line:gmatch("()%+([%w_%-]+)") do
+    local len = 1 + #word -- includes '+'
+    table.insert(positions, {
+      kind = 'project',
+      start_col = start_idx - 1,
+      end_col = (start_idx - 1) + len,
+    })
+  end
+  for start_idx, word in line:gmatch("()@([%w_%-]+)") do
+    local len = 1 + #word -- includes '@'
+    table.insert(positions, {
+      kind = 'context',
+      start_col = start_idx - 1,
+      end_col = (start_idx - 1) + len,
+    })
+  end
+  return positions
+end
+
 -- Parse full line into a structured table
 function M.parse(line)
   local priority = M.extract_priority(line)

@@ -1,3 +1,4 @@
+local parser = require("todo-txt.parser")
 local M = {}
 
 -- Define highlight groups
@@ -40,11 +41,14 @@ function M.get_highlights(line_nr, line)
     end
   end
 
-  -- Check if task is completed
-  if line:match("^%s*%d+%. x") then
+  -- Check if task is completed (consider numeric prefix)
+  local _, num_end = line:find("^%s*%d+%.%s")
+  local tail = num_end and line:sub(num_end + 1) or line
+  if parser.is_done(tail) then
+    local start_col = num_end or 0
     table.insert(regions, {
       group = "TodoCompleted",
-      start_col = 4,
+      start_col = start_col,
       end_col = -1,
     })
     return regions
@@ -59,7 +63,7 @@ function M.get_highlights(line_nr, line)
     })
   end
 
-  -- Highlight priorities (A-Z)
+  -- Highlight priorities (A-Z) anywhere in the rendered line
   local priority_start = line:find("%([A-Z]%)")
   if priority_start then
     table.insert(regions, {
@@ -69,47 +73,41 @@ function M.get_highlights(line_nr, line)
     })
   end
 
-  -- Highlight projects (+project), allow letters, digits, _ and -
-  for start_idx in line:gmatch("()%+[%w_%-]+") do
-    local project = line:match("^%+[%w_%-]+", start_idx)
-    if project then
+  -- Highlight tags using parser-provided positions
+  do
+    local positions = parser.extract_tag_positions(line)
+    for _, pos in ipairs(positions) do
       table.insert(regions, {
-        group = "TodoProject",
-        start_col = start_idx - 1,
-        end_col = start_idx + #project - 1,
+        group = (pos.kind == 'project') and "TodoProject" or "TodoContext",
+        start_col = pos.start_col,
+        end_col = pos.end_col,
       })
     end
   end
 
-  -- Highlight contexts (@context)
-  for start_idx in line:gmatch("()@[%w_%-]+") do
-    local context = line:match("^@[%w_%-]+", start_idx)
-    if context then
-      table.insert(regions, {
-        group = "TodoContext",
-        start_col = start_idx - 1,
-        end_col = start_idx + #context - 1,
-      })
+  -- Highlight due date (use parser to extract then locate span)
+  do
+    local date = parser.extract_due(line)
+    if date then
+      local needle = "due:" .. date
+      local start_idx = line:find(needle, 1, true)
+      if start_idx then
+        local due_date = os.time({
+          year = tonumber(date:sub(1, 4)),
+          month = tonumber(date:sub(6, 7)),
+          day = tonumber(date:sub(9, 10)),
+          hour = 0, min = 0, sec = 0,
+        })
+        local now = os.date("*t")
+        local today = os.time({year = now.year, month = now.month, day = now.day, hour = 0, min = 0, sec = 0})
+        local group = (due_date < today) and "TodoOverdue" or "TodoDue"
+        table.insert(regions, {
+          group = group,
+          start_col = start_idx - 1,
+          end_col = start_idx - 1 + #needle,
+        })
+      end
     end
-  end
-
-  -- Highlight due dates
-  for start_idx, date in line:gmatch("()due:(%d%d%d%d%-%d%d%-%d%d)") do
-    local due_date = os.time({
-      year = tonumber(date:sub(1, 4)),
-      month = tonumber(date:sub(6, 7)),
-      day = tonumber(date:sub(9, 10)),
-    })
-    local today = os.time()
-    local group = "TodoDue"
-    if due_date < today then
-      group = "TodoOverdue"
-    end
-    table.insert(regions, {
-      group = group,
-      start_col = start_idx - 1,
-      end_col = start_idx + 3 + #date,
-    })
   end
 
   return regions

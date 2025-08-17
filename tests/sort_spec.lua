@@ -29,4 +29,21 @@ describe("sort module", function()
     assert.equals("2025-01-01 Task 1", entries[1])
     assert.equals("2025-01-01 Task 2", entries[2])
   end)
+
+  it("supports due-first sorting when configured", function()
+    local entries = {
+      "(B) 2025-01-01 Task B due:2026-01-03",
+      "(A) 2025-01-01 Task A due:2026-01-02",
+      "(C) 2025-01-01 Task C due:2026-01-01",
+      "No pri due:2026-01-04",
+    }
+
+    sortmod.sort_entries(entries, { by = { 'due', 'priority' } })
+
+    -- Expect ascending due regardless of priority, then priority as tie-breaker
+    assert.is_true(entries[1]:match("2026%-01%-01") ~= nil)
+    assert.is_true(entries[2]:match("2026%-01%-02") ~= nil)
+    assert.is_true(entries[3]:match("2026%-01%-03") ~= nil)
+    assert.is_true(entries[4]:match("2026%-01%-04") ~= nil)
+  end)
 end)

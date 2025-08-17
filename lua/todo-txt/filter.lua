@@ -24,17 +24,16 @@ function M.get_due_entries(entries)
   local due_entries = {}
 
   for i, entry in ipairs(entries) do
-    if entry:match("due:%d%d%d%d%-%d%d%-%d%d") then
+    local due = parser.extract_due(entry)
+    if due then
       -- Keep the original index for marking as complete
-      table.insert(due_entries, { index = i, entry = entry })
+      table.insert(due_entries, { index = i, entry = entry, due = due })
     end
   end
 
   -- Sort by due date
   table.sort(due_entries, function(a, b)
-    local date_a = a.entry:match("due:(%d%d%d%d%-%d%d%-%d%d)")
-    local date_b = b.entry:match("due:(%d%d%d%d%-%d%d%-%d%d)")
-    return date_a < date_b
+    return a.due < b.due
   end)
 
   return due_entries

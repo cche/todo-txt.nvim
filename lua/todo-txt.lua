@@ -7,6 +7,7 @@ local filter = require("todo-txt.filter")
 local highlights = require("todo-txt.highlights")
 local parser = require("todo-txt.parser")
 local sortmod = require("todo-txt.sort")
+local util = require("todo-txt.util")
 local M = {}
 
 -- Configuration with defaults
@@ -17,6 +18,9 @@ M.config = {
     width = math.floor(vim.o.columns * 0.8),
     height = math.floor(vim.o.lines * 0.8),
     border = "rounded",
+  },
+  sort = {
+    by = { 'priority', 'due' },
   },
 }
 
@@ -74,10 +78,7 @@ end
 
 -- Function to get priority value
 function M.priority_value(priority)
-  if not priority then
-    return 27
-  end -- After Z
-  return string.byte(priority) - string.byte("A") + 1
+  return util.priority_value(priority)
 end
 
 -- Show edit window for an entry
@@ -162,7 +163,7 @@ function M.show_todo_list()
   for i, line in ipairs(file_entries) do
     table.insert(entries, { entry = line, orig_index = i })
   end
-  sortmod.sort_entries(entries)
+  sortmod.sort_entries(entries, M.config.sort)
   return ui.update_list_window(entries, "todo", " Todo List ")
 end
 

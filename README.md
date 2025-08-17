@@ -77,6 +77,10 @@ require('todo-txt').setup({
         height = 10,    -- Height of the floating window
         border = "rounded", -- Border style of windows
     },
+    -- Sorting configuration (order of criteria). Supported keys: 'priority', 'due'
+    sort = {
+        by = { 'priority', 'due' }, -- default order
+    },
     disable_default_mappings = true -- Disable default key mappings
 })
 ```
@@ -111,8 +115,8 @@ The plugin provides several commands for managing your todos:
 The :TodoList and :TodoDue will show a list of your todo items in a floating window, with the ability to mark them as complete, edit existing entries or add a priority.
 The :TodoAdd command will open a floating window to create a new todo item. You can also add a todo item by pressing 'a' in the Todo or Due Tasks windows.
 
-When editing or adding a todo item, you can press <enter> to save the changes.
-When you press <esc> you will be in normal mode where <enter> will save and pressing <esc> will cancel.
+When editing or adding a todo item, you can press `\<CR>` to save the changes.
+When you press `\<Esc>` you will be in normal mode where `\<CR>` will save and pressing `\<Esc>` will cancel.
 
 ### priorities
 
@@ -121,12 +125,14 @@ To add a priority to a todo item, you can start the item with a letter and a col
 ## Key Mappings
 
 Default leader key mappings (can be disabled with `disable_default_mappings`):
+
 - `<leader>tt` - Show todo list
 - `<leader>ta` - Add new todo
 - `<leader>td` - Show due tasks
 - `<leader>tz` - Archive completed tasks
 
 When in the todo list window:
+
 - `<CR>` - Marks the selected todo item as complete
 - `q`    - Close the window
 - `e`    - Edit the selected item
@@ -136,10 +142,12 @@ When in the todo list window:
 - `r`    - Return to the complete list when in the filtered list
 
 When editing a todo item:
+
 - `<CR>`  - Save changes
 - `<Esc>` - Cancel editing
 
 When setting priority:
+
 - Enter a single capital letter (A-Z) and press `<CR>` to set the priority
 - Press `<Esc>` to cancel
 - To remove priority, press `<CR>` without entering a letter
@@ -153,7 +161,8 @@ Tasks follow the [todo.txt format](http://todotxt.org/):
 - Due dates can be specified with `due:YYYY-MM-DD`
 
 Example tasks:
-```
+
+```text
 (A) 2025-01-13 High priority task due:2027-01-20
 (B) 2025-01-13 Medium priority task with @context and +project
 2025-01-13 Normal priority task

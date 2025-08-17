@@ -1,0 +1,38 @@
+local parser = require("todo-txt.parser")
+
+describe("parser edge cases", function()
+  it("extracts priority only when it is at start", function()
+    assert.equals("A", parser.extract_priority("(A) task"))
+    assert.is_nil(parser.extract_priority("x (A) 2020-01-02 done"))
+    assert.is_nil(parser.extract_priority("No pri (A) later"))
+  end)
+
+  it("detects done only at line start", function()
+    assert.is_true(parser.is_done("x 2020-01-02 done"))
+    assert.is_true(parser.is_done("x (B) 2020-01-02 done"))
+    assert.is_false(parser.is_done("not x 2020-01-02"))
+  end)
+
+  it("extracts created date as first YYYY-MM-DD", function()
+    assert.equals("2021-05-01", parser.extract_created("(A) 2021-05-01 Start"))
+    assert.equals("2020-01-02", parser.extract_created("x (A) 2020-01-02 2020-02-03 done"))
+  end)
+
+  it("extracts completed date with or without priority", function()
+    assert.equals("2020-01-02", parser.extract_completed("x (A) 2020-01-02 done"))
+    assert.equals("2020-01-02", parser.extract_completed("x 2020-01-02 done"))
+    assert.is_nil(parser.extract_completed("(A) 2020-01-02 not done"))
+  end)
+
+  it("extracts due only with strict YYYY-MM-DD after due:", function()
+    assert.equals("2026-12-31", parser.extract_due("something due:2026-12-31"))
+    assert.is_nil(parser.extract_due("something due:2026-1-1"))
+    assert.is_nil(parser.extract_due("no due here"))
+  end)
+
+  it("extracts contexts and projects allowing - and _", function()
+    local ctx, proj = parser.extract_tags("Work on +proj_name-1 @home-office and +Another @ctx2")
+    assert.is_true(ctx["home-office"]) ; assert.is_true(ctx["ctx2"]) ; assert.is_nil(ctx["missing"]) 
+    assert.is_true(proj["proj_name-1"]) ; assert.is_true(proj["Another"]) ; assert.is_nil(proj["nope"]) 
+  end)
+end)
