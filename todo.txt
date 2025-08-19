@@ -1,5 +1,0 @@
-x 2025-01-12 (A) 2025-01-10 First todo task
-(A) 2025-03-15 Second todo task
-(B) 2025-04-17 Third task due:2024-03-26
-2025-01-05 Fourth task +project1 @context1
-2025-01-14 Fifth task +project2 @context2

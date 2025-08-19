@@ -1,138 +1,125 @@
 -- lua/todo-txt/task.lua
 local storage = require("todo-txt.storage")
+local parser = require("todo-txt.parser")
+local formatter = require("todo-txt.formatter")
+local util = require("todo-txt.util")
 
 local M = {}
 
+-- Module-local configuration set via setup()
 local config = {}
 
-function M.setup(opts)
-  config = opts
+-- Initialize module configuration
+function M.setup(cfg)
+  config = cfg or {}
+end
+
+-- Validate index and return entry, notify on error
+local function get_entry_by_index(index, entries)
+  if index < 1 or index > #entries then
+    util.notify_error(string.format("task: invalid index %s (entries: %d)", tostring(index), #entries))
+    return nil
+  end
+  return entries[index]
+end
+
+local function is_valid_index(index, entries_count)
+  if index < 1 or index > entries_count then
+    util.notify_error(string.format("Invalid index %s (entries: %d)", tostring(index), entries_count))
+    return false
+  end
+  return true
 end
 
 -- Function to add a new entry to the todo.txt file
-function M.add_entry(entry, priority)
-  if entry and entry:match("%S") then
-    local date = os.date("%Y-%m-%d")
-    local formatted_entry = ""
-
-    -- Extract priority if provided
-    if priority and priority:match("^[A-Z]$") then
-      formatted_entry = formatted_entry .. "(" .. priority .. ") "
-    end
-
-    formatted_entry = formatted_entry .. date .. " "
-
-    -- Trim whitespace from the task text
-    local task_text = entry:gsub("^%s*(.-)%s*$", "%1")
-    formatted_entry = formatted_entry .. task_text
-
-    local entries = storage.get_entries(config.todo_file)
-    table.insert(entries, formatted_entry)
-    storage.write_entries(config.todo_file, entries)
-    return true
+function M.add_entry(entry_text, priority)
+  if not entry_text or not entry_text:match("%S") then
+    return false
   end
-  return false
+
+  local date = os.date("%Y-%m-%d")
+  local task_table = {
+    line = entry_text:gsub("^%s*(.-)%s*$", "%1"), -- This is now the pure description
+    priority = priority and priority:match("^[A-Z]$") and priority or nil,
+    created = date,
+    is_done = false,
+  }
+
+  local formatted_entry = formatter.format(task_table)
+  local entries = storage.get_entries(config.todo_file)
+  table.insert(entries, formatted_entry)
+  storage.write_entries(config.todo_file, entries)
+  return true
 end
 
 -- Function to mark an entry as complete
 function M.toggle_mark_complete(index)
   local entries = storage.get_entries(config.todo_file)
-  if index < 1 or index > #entries then
-    vim.notify(
-      string.format("todo-txt: toggle_mark_complete() invalid index %s (entries: %d)", tostring(index), #entries),
-      vim.log.levels.ERROR
-    )
+  local entry_line = get_entry_by_index(index, entries)
+  if not entry_line then
     return false
   end
-  if index >= 1 and index <= #entries then
-    local entry = entries[index]
-    -- if not completed mark as completed
-    if not entry:match("^x ") then
-      local completion_date = os.date("%Y-%m-%d")
-      -- Check if entry has priority and capture both priority letter and rest of the task
-      local priority_letter, rest = entry:match("^%(([A-Z])%) (.+)$")
-      if priority_letter then
-        -- Keep x at start, but put completion date after priority
-        entries[index] = "x (" .. priority_letter .. ") " .. completion_date .. " " .. rest
-      else
-        -- If no priority, add completion mark and date at the start
-        entries[index] = "x " .. completion_date .. " " .. entry
-      end
-      storage.write_entries(config.todo_file, entries)
-      return true
-    end
-    -- Check if completed and it has a priority
-    local priority, rest = entry:match("^x %(([A-Z])%) %d%d%d%d%-%d%d%-%d%d (.+)$")
-    if priority then
-      entries[index] = "(" .. priority .. ") " .. rest
-      storage.write_entries(config.todo_file, entries)
-      return true
-    end
-    -- if completed, unmark it
-    rest = entry:match("^x %d%d%d%d%-%d%d%-%d%d (.+)$")
-    if rest then
-      entries[index] = rest
-      storage.write_entries(config.todo_file, entries)
-      return true
-    end
-    vim.notify(
-      string.format("todo-txt: toggle_mark_complete() could not toggle entry at index %d (unexpected format)", index),
-      vim.log.levels.WARN
-    )
+
+  local task_table = parser.parse(entry_line)
+
+  if task_table.is_done then
+    -- Unmark as completed
+    task_table.is_done = false
+    task_table.completed = nil
+  else
+    -- Mark as completed
+    task_table.is_done = true
+    task_table.completed = os.date("%Y-%m-%d")
   end
-  return false
+
+  entries[index] = formatter.format(task_table)
+  storage.write_entries(config.todo_file, entries)
+  return true
 end
 
 function M.delete_entry(index)
   local entries = storage.get_entries(config.todo_file)
-  if index >= 1 and index <= #entries then
-    table.remove(entries, index)
-    storage.write_entries(config.todo_file, entries)
-    return true
+  local entry_line = get_entry_by_index(index, entries)
+  if not entry_line then
+    return false
   end
-  vim.notify(
-    string.format("todo-txt: delete_entry() invalid index %s (entries: %d)", tostring(index), #entries),
-    vim.log.levels.ERROR
-  )
-  return false
+  table.remove(entries, index)
+  storage.write_entries(config.todo_file, entries)
+  return true
 end
 
 -- Function to edit an entry
 function M.edit_entry(index, new_content)
   local entries = storage.get_entries(config.todo_file)
-  if index >= 1 and index <= #entries then
-    entries[index] = new_content
-    storage.write_entries(config.todo_file, entries)
-    -- Check if this should be returned.
-    return entries
+  local entry_line = get_entry_by_index(index, entries)
+  if not entry_line then
+    return nil
   end
-  vim.notify(
-    string.format("todo-txt: edit_entry() invalid index %s (entries: %d)", tostring(index), #entries),
-    vim.log.levels.ERROR
-  )
-  return nil
+  entries[index] = new_content
+  storage.write_entries(config.todo_file, entries)
+  -- Check if this should be returned.
+  return entries
 end
 
 -- Function to set priority of an entry
 function M.set_priority(index, priority)
   local entries = storage.get_entries(config.todo_file)
-  if index >= 1 and index <= #entries then
-    local entry = entries[index]
-    -- Remove existing priority if any
-    entry = entry:gsub("^%([A-Z]%) ", "")
-    -- Add new priority if provided and valid
-    if priority and priority:match("^[A-Z]$") then
-      entry = "(" .. priority .. ") " .. entry
-    end
-    entries[index] = entry
-    storage.write_entries(config.todo_file, entries)
-    return true
+  local entry_line = get_entry_by_index(index, entries)
+  if not entry_line then
+    return false
   end
-  vim.notify(
-    string.format("todo-txt: set_priority() invalid index %s (entries: %d)", tostring(index), #entries),
-    vim.log.levels.ERROR
-  )
-  return false
+
+  local task_table = parser.parse(entry_line)
+
+  if priority and priority:match("^[A-Z]$") then
+    task_table.priority = priority
+  else
+    task_table.priority = nil
+  end
+
+  entries[index] = formatter.format(task_table)
+  storage.write_entries(config.todo_file, entries)
+  return true
 end
 
 -- Function to archive completed tasks
@@ -142,11 +129,12 @@ function M.archive_done_tasks()
   local done_entries = {}
 
   -- Separate completed and uncompleted tasks
-  for _, entry in ipairs(entries) do
-    if entry:match("^x ") then
-      table.insert(done_entries, entry)
+  for _, entry_line in ipairs(entries) do
+    local task_table = parser.parse(entry_line)
+    if task_table.is_done then
+      table.insert(done_entries, entry_line)
     else
-      table.insert(remaining_entries, entry)
+      table.insert(remaining_entries, entry_line)
     end
   end
 
@@ -162,7 +150,7 @@ function M.archive_done_tasks()
     return #done_entries
   end
 
-  vim.notify("todo-txt: archive_done_tasks() found no completed tasks to archive", vim.log.levels.INFO)
+  util.notify_warn("found no completed tasks to archive")
   return 0
 end
 

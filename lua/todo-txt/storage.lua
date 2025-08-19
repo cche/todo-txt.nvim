@@ -21,6 +21,12 @@ end
 
 -- Function to write entries back to file
 function M.write_entries(file_path, entries)
+  -- Ensure directory exists
+  local dir = vim.fn.fnamemodify(file_path, ":h")
+  if vim.fn.isdirectory(dir) == 0 then
+    vim.fn.mkdir(dir, "p")
+  end
+
   local file = io.open(file_path, "w")
   if not file then
     vim.notify("Could not open todo.txt file for writing: " .. file_path, vim.log.levels.ERROR)

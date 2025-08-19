@@ -1,3 +1,4 @@
+require("plenary.test_harness")
 local todo = require("todo-txt")
 local task = require("todo-txt.task")
 local storage = require("todo-txt.storage")
@@ -16,9 +17,13 @@ describe("todo-txt public API and defaults", function()
     })
     -- Ensure clean files
     local f = io.open(todo_file, "w")
-    if f then f:close() end
+    if f then
+      f:close()
+    end
     local f2 = io.open(test_dir .. "/done.txt", "w")
-    if f2 then f2:close() end
+    if f2 then
+      f2:close()
+    end
   end)
 
   after_each(function()

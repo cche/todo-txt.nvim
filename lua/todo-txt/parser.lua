@@ -2,7 +2,7 @@ local M = {}
 
 -- Extract priority letter (A-Z) at start like: "(A) ..."
 function M.extract_priority(line)
-  return line:match("^%((%u)%)")
+  return line:match("^%((%u)%)") or line:match("^x %((%u)%)")
 end
 
 -- Extract due date in YYYY-MM-DD after due:
@@ -64,14 +64,39 @@ end
 
 -- Parse full line into a structured table
 function M.parse(line)
+  local raw_line = line
   local priority = M.extract_priority(line)
   local due = M.extract_due(line)
   local created = M.extract_created(line)
   local completed = M.extract_completed(line)
   local is_done = M.is_done(line)
   local contexts, projects = M.extract_tags(line)
+
+  -- If completed and no leading priority, allow capturing priority immediately after 'x '
+  if is_done and not priority then
+    local pri_after_done = line:match("^x %((%u)%)")
+    if pri_after_done then
+      priority = pri_after_done
+    end
+  end
+
+  -- Remove extracted parts from the line to get the pure description
+  local description = line
+  if is_done then
+    description = description:gsub("^x %([A-Z]%) %d%d%d%d%-%d%d%-%d%d ", "", 1)
+    description = description:gsub("^x %d%d%d%d%-%d%d%-%d%d ", "", 1)
+  end
+  if priority then
+    description = description:gsub("^%([A-Z]%) ", "", 1)
+  end
+  if created then
+    description = description:gsub("^%d%d%d%d%-%d%d%-%d%d ", "", 1)
+  end
+  description = description:gsub("^%s*", "") -- Trim leading spaces
+
   return {
-    line = line,
+    raw_line = raw_line,
+    line = description, -- This will now be the pure description
     priority = priority,
     due = due,
     created = created,
