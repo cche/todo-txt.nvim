@@ -99,6 +99,54 @@ vim.keymap.set("n", "<leader>td", ":TodoDue<CR>", { desc = "Due Tasks", noremap 
 vim.keymap.set("n", "<leader>tz", ":TodoArchive<CR>", { desc = "Archive Done Tasks", noremap = true, silent = true })
 ```
 
+### Completion
+
+Completion can be configured for nvim-cmp or blink.cmp.
+
+#### nvim-cmp
+
+Add the source "todo" to the list of default sources and add the source to the providers
+
+```lua
+opts = {
+    sources = {
+        default = {"lsp", "path", "snippets", "buffer", "lazydev", "todo" },
+        providers = {
+            todo = { name = "todo-txt", module = "todo-cmp" },
+        }
+    }
+}
+```
+
+#### blink.cmp
+
+To limit the completion only to tags found in the task list you have to do the following:
+
+```lua
+opts = {
+    sources = {
+        default = function()
+            -- Check if we're in a todo window
+            local win_config = vim.api.nvim_win_get_config(0)
+            local is_todo_window = win_config.title
+            and type(win_config.title) == "table"
+            and win_config.title[1]
+            and type(win_config.title[1]) == "table"
+            and (win_config.title[1][1] == " Add Todo " or win_config.title[1][1] == " Edit Todo ")
+
+            if is_todo_window then
+                return { "todo" }
+            else
+                return { "lsp", "path", "snippets", "buffer", "lazydev", "todo" }
+            end
+        end,
+        providers = {
+            todo = { name = "todo-txt", module = "todo-blink" },
+        }
+    }
+}
+```
+
 ## Usage
 
 ### Commands
@@ -120,7 +168,10 @@ When you press `\<Esc>` you will be in normal mode where `\<CR>` will save and p
 
 ### priorities
 
-To add a priority to a todo item, you can start the item with a letter and a colon. If the item already exists, you can press 'p' when on the task to assign a priority. It has to be a capital letter between A-Z.
+To add a priority to a todo item, you can start the todo item with a capital letter and a colon, i.e. "A: new task".
+
+If the item already exists, you can press 'p' when on the task to assign a priority.
+It has to be a capital letter between A-Z.
 
 ## Key Mappings
 
@@ -131,7 +182,7 @@ Default leader key mappings (can be disabled with `disable_default_mappings`):
 - `<leader>td` - Show due tasks
 - `<leader>tz` - Archive completed tasks
 
-When in the todo list window:
+When in the todo list or due list window:
 
 - `<CR>` - Marks the selected todo item as complete
 - `q`    - Close the window
@@ -148,9 +199,9 @@ When editing a todo item:
 
 When setting priority:
 
-- Enter a single capital letter (A-Z) and press `<CR>` to set the priority
-- Press `<Esc>` to cancel
-- To remove priority, press `<CR>` without entering a letter
+- Enter a single capital letter (A-Z) and press `<CR>` to set the priority.
+- Press `<Esc>` to cancel.
+- To remove priority, press 'p' then press `<CR>` without entering a letter.
 
 ## Task Format
 
@@ -165,7 +216,7 @@ Example tasks:
 ```text
 (A) 2025-01-13 High priority task due:2027-01-20
 (B) 2025-01-13 Medium priority task with @context and +project
-2025-01-13 Normal priority task
+2025-01-13 No priority task
 ```
 
 ## License
@@ -178,5 +229,5 @@ Contributions are welcome! Please feel free to submit a Pull Request.
 
 ## Acknowledgments
 
-This plugin is inspired by the [todo.txt](http://todotxt.org/) format created by Gina Trapani.
-This plugin was built while testing Cascade in Windsurf, an editor developed by [Codeium](https://codeium.com/).
+This plugin is based on the [todo.txt](http://todotxt.org/) format created by Gina Trapani.
+This plugin was built while testing Cascade in Windsurf, an editor developed by [Windsurf](https://windsurf.com/).
