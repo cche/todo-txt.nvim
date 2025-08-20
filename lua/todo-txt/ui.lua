@@ -147,6 +147,26 @@ function M.show_edit_window(index, original_entry)
   -- Create edit window
   local buf, win = create_floating_window(config.window.width, 1, " Edit Todo ")
 
+  -- Set window type for completion source detection
+  pcall(api.nvim_win_set_var, win, "todo_txt_window_type", "edit")
+  
+  -- Configure completion sources - disable other sources, enable only todo-txt
+  local has_cmp, cmp = pcall(require, "cmp")
+  if has_cmp then
+    cmp.setup.buffer({
+      sources = {
+        { name = "todo-txt" }
+      }
+    })
+  end
+  
+  -- Configure blink.cmp if available
+  local has_blink, blink = pcall(require, "blink.cmp")
+  if has_blink then
+    -- Set buffer-local sources for blink.cmp to only show todo completions
+    vim.api.nvim_buf_set_var(buf, "blink_cmp_sources", { "todo" })
+  end
+
   -- Set the original content
   api.nvim_buf_set_lines(buf, 0, -1, false, { original_entry })
 
