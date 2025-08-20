@@ -1,3 +1,4 @@
+require("plenary.test_harness")
 local todo = require("todo-txt")
 local task = require("todo-txt.task")
 local storage = require("todo-txt.storage")
@@ -143,5 +144,191 @@ describe("todo-txt.nvim plugin", function()
     task.delete_entry(num_entries_before)
     local entries_after = require("todo-txt.storage").get_entries(test_todo_file)
     assert.are.same(num_entries_before - 1, #entries_after)
+  end)
+
+  it("maintains focus on parent window after adding task", function()
+    -- Setup initial task
+    task.add_entry("Initial task")
+
+    -- Setup UI config properly
+    local ui = require("todo-txt.ui")
+    ui.setup({
+      window = {
+        width = 80,
+        height = 20,
+        border = "rounded",
+      },
+    })
+
+    -- Mock window functions to test focus behavior
+    local original_win_getid = vim.fn.win_getid
+    local original_winnr = vim.fn.winnr
+    local mock_parent_win = 123
+
+    vim.fn.win_getid = function(nr)
+      if nr == vim.fn.winnr("#") then
+        return mock_parent_win
+      end
+      return original_win_getid(nr)
+    end
+
+    vim.fn.winnr = function(arg)
+      if arg == "#" then
+        return 2 -- Mock previous window number
+      end
+      return original_winnr(arg)
+    end
+
+    -- Mock UI module to track window type
+    local original_get_window_type = ui.get_window_type
+    ui.get_window_type = function(win_id)
+      if win_id == mock_parent_win then
+        return "todo"
+      end
+      return original_get_window_type(win_id)
+    end
+
+    -- Mock window operations
+    local original_close = vim.api.nvim_win_close
+    local original_set_current_win = vim.api.nvim_set_current_win
+    local window_closed = false
+    local focused_win = nil
+
+    vim.api.nvim_win_close = function(win, force)
+      window_closed = true
+    end
+
+    vim.api.nvim_set_current_win = function(win)
+      focused_win = win
+    end
+
+    -- Mock buffer functions
+    local original_get_lines = vim.api.nvim_buf_get_lines
+    vim.api.nvim_buf_get_lines = function(buf, start, end_, strict)
+      return { "Test new task" }
+    end
+
+    -- Call submit_new_entry
+    todo.submit_new_entry()
+
+    -- Verify task was added
+    local entries = storage.get_entries(test_todo_file)
+    assert.are.same(2, #entries)
+    assert.is_true(entries[2]:match("Test new task") ~= nil)
+
+    -- Verify window was closed
+    assert.is_true(window_closed)
+
+    -- Restore original functions
+    vim.fn.win_getid = original_win_getid
+    vim.fn.winnr = original_winnr
+    ui.get_window_type = original_get_window_type
+    vim.api.nvim_win_close = original_close
+    vim.api.nvim_set_current_win = original_set_current_win
+    vim.api.nvim_buf_get_lines = original_get_lines
+  end)
+
+  it("configures completion sources correctly in add/edit windows", function()
+    -- Add some tasks with tags for completion testing
+    task.add_entry("Task with @work context")
+    task.add_entry("Task with +project tag")
+
+    -- Setup UI config
+    local ui = require("todo-txt.ui")
+    ui.setup({
+      window = {
+        width = 80,
+        height = 20,
+        border = "rounded",
+      },
+    })
+
+    -- Mock cmp.setup.buffer to verify it's called with correct sources
+    local cmp_setup_called = false
+    local cmp_sources = nil
+
+    -- Mock require for cmp
+    local original_require = require
+    _G.require = function(module)
+      if module == "cmp" then
+        return {
+          setup = {
+            buffer = function(config)
+              cmp_setup_called = true
+              cmp_sources = config.sources
+            end,
+          },
+        }
+      end
+      return original_require(module)
+    end
+
+    -- Mock window operations to prevent actual window creation
+    local original_create_buf = vim.api.nvim_create_buf
+    local original_open_win = vim.api.nvim_open_win
+    local original_set_var = vim.api.nvim_win_set_var
+    local original_wo = vim.wo
+    local original_bo = vim.bo
+    local window_type_set = nil
+
+    vim.api.nvim_create_buf = function(listed, scratch)
+      return 1 -- mock buffer id
+    end
+
+    vim.api.nvim_open_win = function(buf, enter, config)
+      return 1 -- mock window id
+    end
+
+    vim.api.nvim_win_set_var = function(win, name, value)
+      if name == "todo_txt_window_type" then
+        window_type_set = value
+      end
+    end
+
+    -- Mock window and buffer options to prevent errors
+    vim.wo = setmetatable({}, {
+      __index = function(_, win)
+        return setmetatable({}, {
+          __newindex = function() end -- ignore all window option sets
+        })
+      end
+    })
+
+    vim.bo = setmetatable({}, {
+      __index = function(_, buf)
+        return setmetatable({}, {
+          __newindex = function() end -- ignore all buffer option sets
+        })
+      end
+    })
+
+    -- Test add window
+    ui.show_add_window()
+
+    -- Verify completion sources were configured correctly
+    assert.is_true(cmp_setup_called)
+    assert.are.same({ { name = "todo-txt" } }, cmp_sources)
+    assert.equals("add", window_type_set)
+
+    -- Reset for edit window test
+    cmp_setup_called = false
+    cmp_sources = nil
+    window_type_set = nil
+
+    -- Test edit window
+    ui.show_edit_window(1, "Test task")
+
+    -- Verify completion sources were configured correctly for edit window
+    assert.is_true(cmp_setup_called)
+    assert.are.same({ { name = "todo-txt" } }, cmp_sources)
+    assert.equals("edit", window_type_set)
+
+    -- Restore original functions
+    _G.require = original_require
+    vim.api.nvim_create_buf = original_create_buf
+    vim.api.nvim_open_win = original_open_win
+    vim.api.nvim_win_set_var = original_set_var
+    vim.wo = original_wo
+    vim.bo = original_bo
   end)
 end)
