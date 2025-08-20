@@ -193,8 +193,19 @@ function M.submit_new_entry()
   end
 
   if task.add_entry(task_text, priority) then
+    -- Get the parent window before closing the add window
+    local parent_win = vim.fn.win_getid(vim.fn.winnr("#"))
+    local window_type = ui.get_window_type(parent_win)
+
+    -- Close the add window
     api.nvim_win_close(0, true)
-    M.show_todo_list()
+
+    -- Refresh the appropriate view based on the parent window type
+    if window_type == "due" then
+      M.show_due_list()
+    else
+      M.show_todo_list()
+    end
   end
 end
 

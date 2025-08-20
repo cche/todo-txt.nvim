@@ -139,6 +139,12 @@ function M.update_list_window(entries, window_type, title)
   end
 
   api.nvim_set_option_value("modifiable", false, { buf = win_info.buf })
+  
+  -- Focus the window if it exists and is valid
+  if win_info.win and api.nvim_win_is_valid(win_info.win) then
+    api.nvim_set_current_win(win_info.win)
+  end
+  
   return win_info.buf, win_info.win
 end
 
@@ -214,6 +220,27 @@ end
 
 function M.show_add_window()
   local buf, win = create_floating_window(config.window.width, 1, " Add Todo ")
+  
+  -- Set window type for completion source detection
+  pcall(api.nvim_win_set_var, win, "todo_txt_window_type", "add")
+  
+  -- Configure completion sources - disable other sources, enable only todo-txt
+  local has_cmp, cmp = pcall(require, "cmp")
+  if has_cmp then
+    cmp.setup.buffer({
+      sources = {
+        { name = "todo-txt" }
+      }
+    })
+  end
+  
+  -- Configure blink.cmp if available
+  local has_blink, blink = pcall(require, "blink.cmp")
+  if has_blink then
+    -- Set buffer-local sources for blink.cmp to only show todo completions
+    vim.api.nvim_buf_set_var(buf, "blink_cmp_sources", { "todo" })
+  end
+  
   vim.cmd("startinsert")
   local opts = { noremap = true, silent = true }
   api.nvim_buf_set_keymap(buf, "i", "<CR>", '<Esc><cmd>lua require("todo-txt").submit_new_entry()<CR>', opts)
