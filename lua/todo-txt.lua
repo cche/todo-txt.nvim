@@ -237,6 +237,24 @@ function M.toggle_selected_complete()
   end
 end
 
+-- Archive completed tasks and refresh the current list window
+function M.archive_done_tasks()
+  local archived = task.archive_done_tasks()
+  if archived and archived > 0 then
+    local window_type = ui.get_window_type(0)
+    if window_type == "due" then
+      M.show_due_list()
+    else
+      M.show_todo_list()
+    end
+    if M.config and M.config.done_file then
+      vim.notify(string.format("Archived %d task(s) to %s", archived, M.config.done_file), vim.log.levels.INFO)
+    else
+      vim.notify(string.format("Archived %d task(s)", archived), vim.log.levels.INFO)
+    end
+  end
+end
+
 -- Set up commands
 function M.setup(opts)
   M.config = vim.tbl_deep_extend("force", M.config, opts or {})
@@ -265,7 +283,7 @@ function M.setup(opts)
   api.nvim_create_user_command("TodoList", M.show_todo_list, {})
   api.nvim_create_user_command("TodoAdd", M.show_add_window, {})
   api.nvim_create_user_command("TodoDue", M.show_due_list, {})
-  api.nvim_create_user_command("TodoArchive", task.archive_done_tasks, {})
+  api.nvim_create_user_command("TodoArchive", M.archive_done_tasks, {})
 
   -- Create default key mappings if not disabled
   if not (opts and opts.disable_default_mappings) then
@@ -275,7 +293,7 @@ function M.setup(opts)
     vim.keymap.set(
       "n",
       "<leader>tz",
-      task.archive_done_tasks,
+      M.archive_done_tasks,
       { desc = "Archive Done Tasks", noremap = true, silent = true }
     )
   end
