@@ -3,4 +3,6 @@ done.txt
 notes.md
 .editorconfig
 .vscodetests/init.lua
-tests/init.vim
+AGENTS.md
+GEMINI.md
+.windsurf
