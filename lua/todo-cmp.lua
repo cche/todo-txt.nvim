@@ -1,6 +1,7 @@
 local source = {}
 local todo = require("todo-txt")
 local parser = require("todo-txt.parser")
+local ui = require("todo-txt.ui")
 
 source.new = function()
   return setmetatable({}, { __index = source })
@@ -37,20 +38,9 @@ source.get_keyword_pattern = function()
   return [[\k*]]
 end
 
--- Check if we're in the add window
+-- Check if we're in the add/edit window
 function source.is_available()
-  -- Prefer window variable set by ui.lua
-  local ok, wt = pcall(vim.api.nvim_win_get_var, 0, "todo_txt_window_type")
-  if ok and (wt == "add" or wt == "edit") then
-    return true
-  end
-  -- Fallback to title inspection
-  local win_config = vim.api.nvim_win_get_config(0)
-  return win_config.title
-    and type(win_config.title) == "table"
-    and win_config.title[1]
-    and type(win_config.title[1]) == "table"
-    and (win_config.title[1][1] == " Add Todo " or win_config.title[1][1] == " Edit Todo ")
+  return ui.is_todo_input_window()
 end
 
 source.complete = function(self, params, callback)

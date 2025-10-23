@@ -32,6 +32,9 @@ describe("todo-txt.nvim plugin", function()
   end)
 
   it("sorts the todo list by priority and due date", function()
+    local parser = require("todo-txt.parser")
+    local util = require("todo-txt.util")
+    
     storage.write_entries(test_todo_file, {
       "(B) 2025-01-01 Task B due:2026-01-02",
       "(A) 2025-01-01 Task A due:2026-01-01",
@@ -39,10 +42,12 @@ describe("todo-txt.nvim plugin", function()
     })
     local entries = storage.get_entries(test_todo_file)
     table.sort(entries, function(a, b)
-      local pa, da = todo.extract_priority_and_due(a)
-      local pb, db = todo.extract_priority_and_due(b)
-      if todo.priority_value(pa) ~= todo.priority_value(pb) then
-        return todo.priority_value(pa) < todo.priority_value(pb)
+      local pa = parser.extract_priority(a)
+      local da = parser.extract_due(a)
+      local pb = parser.extract_priority(b)
+      local db = parser.extract_due(b)
+      if util.priority_value(pa) ~= util.priority_value(pb) then
+        return util.priority_value(pa) < util.priority_value(pb)
       end
       if da and db then
         return da < db
@@ -160,34 +165,6 @@ describe("todo-txt.nvim plugin", function()
       },
     })
 
-    -- Mock window functions to test focus behavior
-    local original_win_getid = vim.fn.win_getid
-    local original_winnr = vim.fn.winnr
-    local mock_parent_win = 123
-
-    vim.fn.win_getid = function(nr)
-      if nr == vim.fn.winnr("#") then
-        return mock_parent_win
-      end
-      return original_win_getid(nr)
-    end
-
-    vim.fn.winnr = function(arg)
-      if arg == "#" then
-        return 2 -- Mock previous window number
-      end
-      return original_winnr(arg)
-    end
-
-    -- Mock UI module to track window type
-    local original_get_window_type = ui.get_window_type
-    ui.get_window_type = function(win_id)
-      if win_id == mock_parent_win then
-        return "todo"
-      end
-      return original_get_window_type(win_id)
-    end
-
     -- Mock window operations
     local original_close = vim.api.nvim_win_close
     local original_set_current_win = vim.api.nvim_set_current_win
@@ -208,6 +185,12 @@ describe("todo-txt.nvim plugin", function()
       return { "Test new task" }
     end
 
+    -- Mock vim.cmd to prevent actual command execution
+    local original_cmd = vim.cmd
+    vim.cmd = function(cmd)
+      -- Do nothing for TodoList command
+    end
+
     -- Call submit_new_entry
     todo.submit_new_entry()
 
@@ -220,12 +203,10 @@ describe("todo-txt.nvim plugin", function()
     assert.is_true(window_closed)
 
     -- Restore original functions
-    vim.fn.win_getid = original_win_getid
-    vim.fn.winnr = original_winnr
-    ui.get_window_type = original_get_window_type
     vim.api.nvim_win_close = original_close
     vim.api.nvim_set_current_win = original_set_current_win
     vim.api.nvim_buf_get_lines = original_get_lines
+    vim.cmd = original_cmd
   end)
 
   it("configures completion sources correctly in add/edit windows", function()

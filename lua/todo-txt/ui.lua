@@ -5,10 +5,8 @@ local highlights = require("todo-txt.highlights")
 local M = {}
 
 local config = {}
-local list_windows = {
-  todo = { buf = nil, win = nil },
-  due = { buf = nil, win = nil },
-}
+local list_window = { buf = nil, win = nil }
+local current_filter = { type = nil, value = nil }  -- tracks active filter
 
 -- Create a single namespace for this plugin's highlights
 local NS_ID = api.nvim_create_namespace("todo_txt_highlights")
@@ -49,74 +47,75 @@ local function create_floating_window(width, height, title)
   return buf, win
 end
 
--- Helper function to get parent window type
-function M.get_window_type(win_id)
-  if win_id and api.nvim_win_is_valid(win_id) then
-    local ok, val = pcall(api.nvim_win_get_var, win_id, "todo_txt_window_type")
-    if ok and type(val) == "string" then
-      return val
-    end
-  end
-  local win_config = win_id and api.nvim_win_get_config(win_id)
-  if
-    win_config
-    and win_config.title
-    and type(win_config.title) == "table"
-    and win_config.title[1]
-    and type(win_config.title[1]) == "table"
-  then
-    local title = win_config.title[1][1]
-    if title == " Due Tasks " then
-      return "due"
-    elseif title == " Todo List " then
-      return "todo"
-    end
-  end
-  return nil
+-- Helper function to check if we're in a todo input window (add/edit)
+function M.is_todo_input_window()
+  local ok, wt = pcall(api.nvim_win_get_var, 0, "todo_txt_window_type")
+  return ok and (wt == "add" or wt == "edit")
+end
+
+-- Get current filter state
+function M.get_current_filter()
+  return current_filter.type, current_filter.value
+end
+
+-- Set current filter state
+function M.set_filter(filter_type, filter_value)
+  current_filter.type = filter_type
+  current_filter.value = filter_value
 end
 
 -- Function to update list window contents
-function M.update_list_window(entries, window_type, title)
-  local win_info = list_windows[window_type]
-  if not win_info or not win_info.win or not api.nvim_win_is_valid(win_info.win) then
+function M.update_list_window(entries, title)
+  if not list_window.win or not api.nvim_win_is_valid(list_window.win) then
     -- Create new window if it doesn't exist or is invalid
     local buf, win = create_floating_window(nil, nil, title)
-    win_info = { buf = buf, win = win }
-    list_windows[window_type] = win_info
-    -- Track window type robustly
-    pcall(api.nvim_win_set_var, win, "todo_txt_window_type", window_type)
+    list_window.buf = buf
+    list_window.win = win
+    -- Mark as todo list window
+    pcall(api.nvim_win_set_var, win, "todo_txt_window_type", "todo")
 
     -- Set buffer filetype
     vim.bo[buf].filetype = "todo"
 
     -- Set keymaps for the todo list window
     local opts = { noremap = true, silent = true }
-    api.nvim_buf_set_keymap(win_info.buf, "n", "q", "<cmd>q<CR>", opts)
+    api.nvim_buf_set_keymap(list_window.buf, "n", "q", "<cmd>q<CR>", opts)
     api.nvim_buf_set_keymap(
-      win_info.buf,
+      list_window.buf,
       "n",
       "<CR>",
       '<cmd>lua require("todo-txt").toggle_selected_complete()<CR>',
       opts
     )
-    api.nvim_buf_set_keymap(win_info.buf, "n", "a", '<cmd>lua require("todo-txt").show_add_window()<CR>', opts)
-    api.nvim_buf_set_keymap(win_info.buf, "n", "e", '<cmd>lua require("todo-txt").show_edit_window()<CR>', opts)
-    api.nvim_buf_set_keymap(win_info.buf, "n", "p", '<cmd>lua require("todo-txt").show_priority_window()<CR>', opts)
+    api.nvim_buf_set_keymap(list_window.buf, "n", "a", '<cmd>lua require("todo-txt").show_add_window()<CR>', opts)
+    api.nvim_buf_set_keymap(list_window.buf, "n", "e", '<cmd>lua require("todo-txt").show_edit_window()<CR>', opts)
+    api.nvim_buf_set_keymap(list_window.buf, "n", "p", '<cmd>lua require("todo-txt").show_priority_window()<CR>', opts)
     -- Filter by tag under cursor
     api.nvim_buf_set_keymap(
-      win_info.buf,
+      list_window.buf,
       "n",
       "f",
       '<cmd>lua require("todo-txt").filter_by_tag_under_cursor()<CR>',
       opts
     )
-    api.nvim_buf_set_keymap(win_info.buf, "n", "dd", '<cmd>lua require("todo-txt").delete_selected_entry()<CR>', opts)
+    api.nvim_buf_set_keymap(list_window.buf, "n", "dd", '<cmd>lua require("todo-txt").delete_selected_entry()<CR>', opts)
+    -- Toggle due filter
+    api.nvim_buf_set_keymap(list_window.buf, "n", "d", '<cmd>lua require("todo-txt").toggle_due_filter()<CR>', opts)
     -- Reset filter (show all)
-    api.nvim_buf_set_keymap(win_info.buf, "n", "r", '<cmd>lua require("todo-txt").show_todo_list()<CR>', opts)
+    api.nvim_buf_set_keymap(list_window.buf, "n", "r", '<cmd>lua require("todo-txt").show_todo_list()<CR>', opts)
+  end
+
+  -- Update window title if it changed
+  if list_window.win and api.nvim_win_is_valid(list_window.win) then
+    local win_config = api.nvim_win_get_config(list_window.win)
+    if win_config.title and type(win_config.title) == "table" and win_config.title[1] and win_config.title[1][1] ~= title then
+      win_config.title = title
+      api.nvim_win_set_config(list_window.win, win_config)
+    end
   end
 
   -- Clear and update buffer contents
-  api.nvim_set_option_value("modifiable", true, { buf = win_info.buf })
+  api.nvim_set_option_value("modifiable", true, { buf = list_window.buf })
 
   -- Prepare display lines with original file indexes
   local lines = {}
@@ -126,38 +125,32 @@ function M.update_list_window(entries, window_type, title)
     table.insert(lines, display_line)
   end
 
-  api.nvim_buf_set_lines(win_info.buf, 0, -1, false, lines)
+  api.nvim_buf_set_lines(list_window.buf, 0, -1, false, lines)
 
   -- Apply syntax highlighting
-  api.nvim_buf_clear_namespace(win_info.buf, NS_ID, 0, -1)
+  api.nvim_buf_clear_namespace(list_window.buf, NS_ID, 0, -1)
 
   for i, line in ipairs(lines) do
     local regions = highlights.get_highlights(i, line)
     for _, region in ipairs(regions) do
-      api.nvim_buf_add_highlight(win_info.buf, NS_ID, region.group, i - 1, region.start_col, region.end_col)
+      api.nvim_buf_add_highlight(list_window.buf, NS_ID, region.group, i - 1, region.start_col, region.end_col)
     end
   end
 
-  api.nvim_set_option_value("modifiable", false, { buf = win_info.buf })
+  api.nvim_set_option_value("modifiable", false, { buf = list_window.buf })
   
   -- Focus the window if it exists and is valid
-  if win_info.win and api.nvim_win_is_valid(win_info.win) then
-    api.nvim_set_current_win(win_info.win)
+  if list_window.win and api.nvim_win_is_valid(list_window.win) then
+    api.nvim_set_current_win(list_window.win)
   end
   
-  return win_info.buf, win_info.win
+  return list_window.buf, list_window.win
 end
 
--- Refresh the current list window (todo or due) based on window type
--- Optionally pass a specific window id (e.g., parent window) to decide which view to refresh
-function M.refresh_current_list(win_id)
-  local window_type = M.get_window_type(win_id or 0)
-  -- Use user commands to avoid requiring the main module here (prevents cyclic require issues)
-  if window_type == "due" then
-    vim.cmd("TodoDue")
-  else
-    vim.cmd("TodoList")
-  end
+-- Refresh the current list window with the active filter
+function M.refresh_current_list()
+  -- Use user command to refresh - it will apply the current filter
+  vim.cmd("TodoList")
 end
 
 -- Show edit window for an entry

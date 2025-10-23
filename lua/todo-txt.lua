@@ -54,32 +54,25 @@ function M.filter_by_tag_under_cursor()
     vim.notify("No @context or +project tag under cursor", vim.log.levels.INFO)
     return
   end
-  -- Get all entries (with orig_index)
+  
+  -- Check if any tasks have this tag before setting filter
   local file_entries = storage.get_entries(M.config.todo_file)
   local entries = {}
   for i, line in ipairs(file_entries) do
     table.insert(entries, { entry = line, orig_index = i })
   end
-  local filtered = filter.filter_by_tag(entries, tag)
+  local filtered = filter.filter_entries(entries, "tag", tag)
+  
   if #filtered == 0 then
     vim.notify("No tasks found for tag " .. tag, vim.log.levels.INFO)
     return
   end
-  ui.update_list_window(filtered, "todo", " Filter: " .. tag .. " ")
+  
+  -- Set filter and refresh using standard flow (includes sorting)
+  ui.set_filter("tag", tag)
+  M.show_todo_list()
 end
 
--- Helper function to extract priority and due date
-function M.extract_priority_and_due(entry)
-  local text = entry.entry or entry
-  local priority = parser.extract_priority(text)
-  local due = parser.extract_due(text)
-  return priority, due
-end
-
--- Function to get priority value
-function M.priority_value(priority)
-  return util.priority_value(priority)
-end
 
 -- Show edit window for an entry
 function M.show_edit_window()
@@ -105,14 +98,11 @@ function M.submit_edit(index)
 
   local updated_entries = task.edit_entry(index, new_content)
   if updated_entries then
-    -- Get the parent window before closing the edit window
-    local parent_win = vim.fn.win_getid(vim.fn.winnr("#"))
-
     -- Close the edit window
     api.nvim_win_close(0, true)
 
-    -- Refresh the appropriate view based on the parent window
-    ui.refresh_current_list(parent_win)
+    -- Refresh the list with current filter
+    ui.refresh_current_list()
   end
 end
 
@@ -139,27 +129,50 @@ function M.submit_priority()
   api.nvim_win_close(0, true)
 
   if task.set_priority(index, priority) then
-    -- Get the parent window type and refresh via helper
-    local parent_win = vim.fn.win_getid(vim.fn.winnr("#"))
-    ui.refresh_current_list(parent_win)
+    ui.refresh_current_list()
   end
 end
 
--- Display entries in floating window
+-- Display entries in floating window with optional filter
 function M.show_todo_list()
+  -- Get current filter state
+  local filter_type, filter_value = ui.get_current_filter()
+  
+  -- Get all entries with original indices
   local file_entries = storage.get_entries(M.config.todo_file)
   local entries = {}
   for i, line in ipairs(file_entries) do
     table.insert(entries, { entry = line, orig_index = i })
   end
-  sortmod.sort_entries(entries, M.config.sort)
-  return ui.update_list_window(entries, "todo", " Todo List ")
+  
+  -- Apply filter if active
+  local filtered_entries = filter.filter_entries(entries, filter_type, filter_value)
+  
+  -- Sort entries
+  sortmod.sort_entries(filtered_entries, M.config.sort)
+  
+  -- Determine title based on filter
+  local title = " Todo List "
+  if filter_type == "due" then
+    title = " Due Tasks "
+  elseif filter_type == "tag" and filter_value then
+    title = " Filter: " .. filter_value .. " "
+  end
+  
+  return ui.update_list_window(filtered_entries, title)
 end
 
-function M.show_due_list()
-  local entries = storage.get_entries(M.config.todo_file)
-  local due_entries = filter.get_due_entries(entries)
-  return ui.update_list_window(due_entries, "due", " Due Tasks ")
+-- Toggle due filter on/off
+function M.toggle_due_filter()
+  local filter_type = ui.get_current_filter()
+  if filter_type == "due" then
+    -- Turn off due filter
+    ui.set_filter(nil, nil)
+  else
+    -- Turn on due filter
+    ui.set_filter("due", nil)
+  end
+  M.show_todo_list()
 end
 
 function M.get_entries()
@@ -182,14 +195,11 @@ function M.submit_new_entry()
   end
 
   if task.add_entry(task_text, priority) then
-    -- Get the parent window before closing the add window
-    local parent_win = vim.fn.win_getid(vim.fn.winnr("#"))
-
     -- Close the add window
     api.nvim_win_close(0, true)
 
-    -- Refresh the appropriate view based on the parent window type
-    ui.refresh_current_list(parent_win)
+    -- Refresh with current filter
+    ui.refresh_current_list()
   end
 end
 
@@ -198,7 +208,7 @@ function M.delete_selected_entry()
   local line_content = api.nvim_buf_get_lines(0, current_line - 1, current_line, false)[1]
   local index = tonumber(line_content:match("^%s*(%d+)%."))
   if index and task.delete_entry(index) then
-    ui.refresh_current_list(0)
+    ui.refresh_current_list()
   end
 end
 
@@ -207,7 +217,7 @@ function M.toggle_selected_complete()
   local line_content = api.nvim_buf_get_lines(0, current_line - 1, current_line, false)[1]
   local index = tonumber(line_content:match("^%s*(%d+)%."))
   if index and task.toggle_mark_complete(index) then
-    ui.refresh_current_list(0)
+    ui.refresh_current_list()
   end
 end
 
@@ -215,8 +225,8 @@ end
 function M.archive_done_tasks()
   local archived = task.archive_done_tasks()
   if archived and archived > 0 then
-    -- Refresh based on current window type
-    ui.refresh_current_list(0)
+    -- Refresh with current filter
+    ui.refresh_current_list()
     -- Inform the user
     if M.config and M.config.done_file then
       vim.notify(string.format("Archived %d task(s) to %s", archived, M.config.done_file), vim.log.levels.INFO)
@@ -251,16 +261,28 @@ function M.setup(opts)
   highlights.setup()
 
   -- Create user commands
-  api.nvim_create_user_command("TodoList", M.show_todo_list, {})
+  api.nvim_create_user_command("TodoList", function()
+    ui.set_filter(nil, nil)  -- Clear filter
+    M.show_todo_list()
+  end, {})
   api.nvim_create_user_command("TodoAdd", M.show_add_window, {})
-  api.nvim_create_user_command("TodoDue", M.show_due_list, {})
+  api.nvim_create_user_command("TodoDue", function()
+    ui.set_filter("due", nil)
+    M.show_todo_list()
+  end, {})
   api.nvim_create_user_command("TodoArchive", M.archive_done_tasks, {})
 
   -- Create default key mappings if not disabled
   if not (opts and opts.disable_default_mappings) then
-    vim.keymap.set("n", "<leader>tt", M.show_todo_list, { desc = "Todo List", noremap = true, silent = true })
+    vim.keymap.set("n", "<leader>tt", function()
+      ui.set_filter(nil, nil)
+      M.show_todo_list()
+    end, { desc = "Todo List", noremap = true, silent = true })
     vim.keymap.set("n", "<leader>ta", M.show_add_window, { desc = "Add Todo", noremap = true, silent = true })
-    vim.keymap.set("n", "<leader>td", M.show_due_list, { desc = "Due Tasks", noremap = true, silent = true })
+    vim.keymap.set("n", "<leader>td", function()
+      ui.set_filter("due", nil)
+      M.show_todo_list()
+    end, { desc = "Due Tasks", noremap = true, silent = true })
     vim.keymap.set(
       "n",
       "<leader>tz",

@@ -3,6 +3,7 @@
 local source = {}
 local todo = require("todo-txt")
 local parser = require("todo-txt.parser")
+local ui = require("todo-txt.ui")
 
 -- Get all unique contexts and projects from the todo file
 local function get_all_completions()
@@ -26,23 +27,9 @@ local function get_all_completions()
   }
 end
 
--- Check if we're in the add window
+-- Check if we're in the add/edit window
 local function is_available()
-  -- Prefer window variable set by ui.lua
-  local ok, wt = pcall(vim.api.nvim_win_get_var, 0, "todo_txt_window_type")
-  if ok and (wt == "add" or wt == "edit") then
-    return true
-  end
-  -- Fallback to title inspection
-  local win_config = vim.api.nvim_win_get_config(0)
-  if win_config.title
-    and type(win_config.title) == "table"
-    and win_config.title[1]
-    and type(win_config.title[1]) == "table"
-    and (win_config.title[1][1] == " Add Todo " or win_config.title[1][1] == " Edit Todo ") then
-    return true
-  end
-  return false
+  return ui.is_todo_input_window()
 end
 
 function source.new(opts)
