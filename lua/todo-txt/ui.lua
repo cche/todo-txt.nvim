@@ -6,7 +6,7 @@ local M = {}
 
 local config = {}
 local list_window = { buf = nil, win = nil }
-local current_filter = { type = nil, value = nil }  -- tracks active filter
+local active_filters = { tag = nil, due = false }  -- tracks active filters (can be combined)
 
 -- Create a single namespace for this plugin's highlights
 local NS_ID = api.nvim_create_namespace("todo_txt_highlights")
@@ -54,14 +54,25 @@ function M.is_todo_input_window()
 end
 
 -- Get current filter state
-function M.get_current_filter()
-  return current_filter.type, current_filter.value
+function M.get_active_filters()
+  return active_filters
 end
 
--- Set current filter state
-function M.set_filter(filter_type, filter_value)
-  current_filter.type = filter_type
-  current_filter.value = filter_value
+-- Set tag filter
+function M.set_tag_filter(tag)
+  active_filters.tag = tag
+end
+
+-- Toggle due filter
+function M.toggle_due_filter()
+  active_filters.due = not active_filters.due
+  return active_filters.due
+end
+
+-- Clear all filters
+function M.clear_filters()
+  active_filters.tag = nil
+  active_filters.due = false
 end
 
 -- Function to update list window contents

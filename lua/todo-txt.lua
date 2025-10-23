@@ -68,8 +68,8 @@ function M.filter_by_tag_under_cursor()
     return
   end
   
-  -- Set filter and refresh using standard flow (includes sorting)
-  ui.set_filter("tag", tag)
+  -- Set tag filter and refresh (preserves due filter if active)
+  ui.set_tag_filter(tag)
   M.show_todo_list()
 end
 
@@ -133,10 +133,10 @@ function M.submit_priority()
   end
 end
 
--- Display entries in floating window with optional filter
+-- Display entries in floating window with cascading filters
 function M.show_todo_list()
-  -- Get current filter state
-  local filter_type, filter_value = ui.get_current_filter()
+  -- Get active filters
+  local filters = ui.get_active_filters()
   
   -- Get all entries with original indices
   local file_entries = storage.get_entries(M.config.todo_file)
@@ -145,33 +145,49 @@ function M.show_todo_list()
     table.insert(entries, { entry = line, orig_index = i })
   end
   
-  -- Apply filter if active
-  local filtered_entries = filter.filter_entries(entries, filter_type, filter_value)
+  -- Apply cascading filters
+  local filtered_entries = filter.apply_filters(entries, filters)
   
   -- Sort entries
   sortmod.sort_entries(filtered_entries, M.config.sort)
   
-  -- Determine title based on filter
-  local title = " Todo List "
-  if filter_type == "due" then
-    title = " Due Tasks "
-  elseif filter_type == "tag" and filter_value then
-    title = " Filter: " .. filter_value .. " "
+  -- Build title based on active filters
+  local title_parts = {}
+  if filters.tag then
+    table.insert(title_parts, filters.tag)
+  end
+  if filters.due then
+    table.insert(title_parts, "Due")
+  end
+  
+  local title
+  if #title_parts == 0 then
+    title = " Todo List "
+  elseif #title_parts == 1 then
+    title = " " .. title_parts[1] .. " "
+  else
+    title = " " .. table.concat(title_parts, " + ") .. " "
   end
   
   return ui.update_list_window(filtered_entries, title)
 end
 
--- Toggle due filter on/off
+-- Toggle due filter on/off (preserves tag filter)
 function M.toggle_due_filter()
-  local filter_type = ui.get_current_filter()
-  if filter_type == "due" then
-    -- Turn off due filter
-    ui.set_filter(nil, nil)
+  local is_due_active = ui.toggle_due_filter()
+  local filters = ui.get_active_filters()
+  
+  -- Notify user of filter state
+  if is_due_active then
+    if filters.tag then
+      vim.notify("Due filter enabled (combined with " .. filters.tag .. ")", vim.log.levels.INFO)
+    else
+      vim.notify("Due filter enabled", vim.log.levels.INFO)
+    end
   else
-    -- Turn on due filter
-    ui.set_filter("due", nil)
+    vim.notify("Due filter disabled", vim.log.levels.INFO)
   end
+  
   M.show_todo_list()
 end
 
@@ -262,12 +278,13 @@ function M.setup(opts)
 
   -- Create user commands
   api.nvim_create_user_command("TodoList", function()
-    ui.set_filter(nil, nil)  -- Clear filter
+    ui.clear_filters()  -- Clear all filters
     M.show_todo_list()
   end, {})
   api.nvim_create_user_command("TodoAdd", M.show_add_window, {})
   api.nvim_create_user_command("TodoDue", function()
-    ui.set_filter("due", nil)
+    ui.clear_filters()  -- Clear tag filter
+    ui.toggle_due_filter()  -- Enable due filter
     M.show_todo_list()
   end, {})
   api.nvim_create_user_command("TodoArchive", M.archive_done_tasks, {})
@@ -275,12 +292,13 @@ function M.setup(opts)
   -- Create default key mappings if not disabled
   if not (opts and opts.disable_default_mappings) then
     vim.keymap.set("n", "<leader>tt", function()
-      ui.set_filter(nil, nil)
+      ui.clear_filters()
       M.show_todo_list()
     end, { desc = "Todo List", noremap = true, silent = true })
     vim.keymap.set("n", "<leader>ta", M.show_add_window, { desc = "Add Todo", noremap = true, silent = true })
     vim.keymap.set("n", "<leader>td", function()
-      ui.set_filter("due", nil)
+      ui.clear_filters()
+      ui.toggle_due_filter()
       M.show_todo_list()
     end, { desc = "Due Tasks", noremap = true, silent = true })
     vim.keymap.set(

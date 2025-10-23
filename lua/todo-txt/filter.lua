@@ -57,6 +57,24 @@ function M.filter_entries(entries, filter_type, filter_value)
   return entries  -- no filter
 end
 
+-- Apply cascading filters (multiple filters in sequence)
+-- filters: table with { tag = "tag_string", due = boolean }
+function M.apply_filters(entries, filters)
+  local result = entries
+  
+  -- Apply tag filter first if present
+  if filters.tag then
+    result = filter_by_tag(result, filters.tag)
+  end
+  
+  -- Apply due filter if enabled
+  if filters.due then
+    result = filter_due(result)
+  end
+  
+  return result
+end
+
 -- Backward compatibility: keep old function names as wrappers
 function M.filter_by_tag(entries, tag)
   return filter_by_tag(entries, tag)
