@@ -148,6 +148,18 @@ function M.update_list_window(entries, window_type, title)
   return win_info.buf, win_info.win
 end
 
+-- Refresh the current list window (todo or due) based on window type
+-- Optionally pass a specific window id (e.g., parent window) to decide which view to refresh
+function M.refresh_current_list(win_id)
+  local window_type = M.get_window_type(win_id or 0)
+  -- Use user commands to avoid requiring the main module here (prevents cyclic require issues)
+  if window_type == "due" then
+    vim.cmd("TodoDue")
+  else
+    vim.cmd("TodoList")
+  end
+end
+
 -- Show edit window for an entry
 function M.show_edit_window(index, original_entry)
   -- Create edit window

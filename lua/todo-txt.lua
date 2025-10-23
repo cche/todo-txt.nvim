@@ -107,17 +107,12 @@ function M.submit_edit(index)
   if updated_entries then
     -- Get the parent window before closing the edit window
     local parent_win = vim.fn.win_getid(vim.fn.winnr("#"))
-    local window_type = ui.get_window_type(parent_win)
 
     -- Close the edit window
     api.nvim_win_close(0, true)
 
-    -- Refresh the appropriate view
-    if window_type == "due" then
-      M.show_due_list()
-    else
-      M.show_todo_list()
-    end
+    -- Refresh the appropriate view based on the parent window
+    ui.refresh_current_list(parent_win)
   end
 end
 
@@ -144,15 +139,9 @@ function M.submit_priority()
   api.nvim_win_close(0, true)
 
   if task.set_priority(index, priority) then
-    -- Get the parent window type and refresh
+    -- Get the parent window type and refresh via helper
     local parent_win = vim.fn.win_getid(vim.fn.winnr("#"))
-    local window_type = ui.get_window_type(parent_win)
-
-    if window_type == "due" then
-      M.show_due_list()
-    else
-      M.show_todo_list()
-    end
+    ui.refresh_current_list(parent_win)
   end
 end
 
@@ -195,17 +184,12 @@ function M.submit_new_entry()
   if task.add_entry(task_text, priority) then
     -- Get the parent window before closing the add window
     local parent_win = vim.fn.win_getid(vim.fn.winnr("#"))
-    local window_type = ui.get_window_type(parent_win)
 
     -- Close the add window
     api.nvim_win_close(0, true)
 
     -- Refresh the appropriate view based on the parent window type
-    if window_type == "due" then
-      M.show_due_list()
-    else
-      M.show_todo_list()
-    end
+    ui.refresh_current_list(parent_win)
   end
 end
 
@@ -214,12 +198,7 @@ function M.delete_selected_entry()
   local line_content = api.nvim_buf_get_lines(0, current_line - 1, current_line, false)[1]
   local index = tonumber(line_content:match("^%s*(%d+)%."))
   if index and task.delete_entry(index) then
-    local window_type = ui.get_window_type(0)
-    if window_type == "due" then
-      M.show_due_list()
-    else
-      M.show_todo_list()
-    end
+    ui.refresh_current_list(0)
   end
 end
 
@@ -228,12 +207,7 @@ function M.toggle_selected_complete()
   local line_content = api.nvim_buf_get_lines(0, current_line - 1, current_line, false)[1]
   local index = tonumber(line_content:match("^%s*(%d+)%."))
   if index and task.toggle_mark_complete(index) then
-    local window_type = ui.get_window_type(0)
-    if window_type == "due" then
-      M.show_due_list()
-    else
-      M.show_todo_list()
-    end
+    ui.refresh_current_list(0)
   end
 end
 
@@ -241,12 +215,9 @@ end
 function M.archive_done_tasks()
   local archived = task.archive_done_tasks()
   if archived and archived > 0 then
-    local window_type = ui.get_window_type(0)
-    if window_type == "due" then
-      M.show_due_list()
-    else
-      M.show_todo_list()
-    end
+    -- Refresh based on current window type
+    ui.refresh_current_list(0)
+    -- Inform the user
     if M.config and M.config.done_file then
       vim.notify(string.format("Archived %d task(s) to %s", archived, M.config.done_file), vim.log.levels.INFO)
     else
