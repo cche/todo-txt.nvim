@@ -55,6 +55,15 @@ function M.filter_by_tag_under_cursor()
     return
   end
   
+  -- Check if this tag is already active - if so, toggle it off
+  local filters = ui.get_active_filters()
+  if filters.tag == tag then
+    ui.set_tag_filter(nil)
+    vim.notify("Tag filter cleared", vim.log.levels.INFO)
+    M.show_todo_list()
+    return
+  end
+  
   -- Check if any tasks have this tag before setting filter
   local file_entries = storage.get_entries(M.config.todo_file)
   local entries = {}
@@ -70,6 +79,14 @@ function M.filter_by_tag_under_cursor()
   
   -- Set tag filter and refresh (preserves due filter if active)
   ui.set_tag_filter(tag)
+  vim.notify("Filtered by " .. tag, vim.log.levels.INFO)
+  M.show_todo_list()
+end
+
+-- Clear all filters and show full list
+function M.clear_all_filters()
+  ui.clear_filters()
+  vim.notify("All filters cleared", vim.log.levels.INFO)
   M.show_todo_list()
 end
 

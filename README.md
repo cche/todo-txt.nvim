@@ -4,15 +4,23 @@ A Neovim plugin for managing your todo.txt files directly from within Neovim. Th
 
 ## Features
 
-- Create and manage todo items with automatic date prefixing
-- Add priority to the task at creation by starting with the priority and a colon "A: new task"
-- Mark tasks as complete with completion dates
+- Create todo items with automatic creation date prefixing
+- Add priority when adding a task by starting with the priority and a colon i.e. "A: new task"
+- Mark tasks as complete with automatically added completion date
 - Edit existing tasks through a floating window interface
 - View all tasks in a sorted list
-- Clean and minimal UI with customizable floating windows
-- Native Neovim integration
+- Clean and minimal UI with customizable floating window
+- Seamless integration with Neovim
 - Archive completed tasks to a separate file
 - Add or change task priorities
+- Filter by tag (@context or +project) and/or due date
+- Cascading filters (filter by tag and due date)
+- Simplified blink.cmp integration
+
+## Features I might implement in the future
+
+- [ ] Filter tasks due today.
+- [ ] Create local (per project) todo files.
 
 ## Installation
 
@@ -23,46 +31,14 @@ Using [lazy.nvim](https://github.com/folke/lazy.nvim):
     'cche/todo-txt.nvim',
     dependencies = {
         'hrsh7th/nvim-cmp'
+        # or blink.cmp
+        'saghen/blink.cmp
     },
     config = function()
         require('todo-txt').setup()
     end
 }
 ```
-
-## Breaking changes
-
-The internal modules have been migrated to a proper namespace under `lua/todo-txt/`.
-
-- Top-level modules were removed: `lua/storage.lua`, `lua/task.lua`, `lua/filter.lua`, `lua/highlights.lua`, `lua/parser.lua`, `lua/ui.lua`.
-- If your config or custom code required those top-level modules directly, update the require paths to the new namespace.
-
-Before:
-
-```lua
-local storage = require("storage")
-local task = require("task")
-local filter = require("filter")
-local highlights = require("highlights")
-local parser = require("parser")
-local ui = require("ui")
-```
-
-After:
-
-```lua
-local storage = require("todo-txt.storage")
-local task = require("todo-txt.task")
-local filter = require("todo-txt.filter")
-local highlights = require("todo-txt.highlights")
-local parser = require("todo-txt.parser")
-local ui = require("todo-txt.ui")
-```
-
-Notes:
-
-- The public entrypoint remains `require("todo-txt")` and is unchanged.
-- Tests and internal code have been updated accordingly.
 
 ## Configuration
 
@@ -92,7 +68,7 @@ In order to disable the default key mappings, you can pass `disable_default_mapp
 ```lua
 require('todo-txt').setup({ disable_default_mappings = true })
 
--- Define your own key mappings
+-- Define your own key mappings (the default mappings are shown here)
 vim.keymap.set("n", "<leader>tt", ":TodoList<CR>", { desc = "Todo List", noremap = true, silent = true })
 vim.keymap.set("n", "<leader>ta", ":TodoAdd<CR>", { desc = "Add Todo", noremap = true, silent = true })
 vim.keymap.set("n", "<leader>td", ":TodoDue<CR>", { desc = "Due Tasks", noremap = true, silent = true })
@@ -120,21 +96,14 @@ opts = {
 
 #### blink.cmp
 
-To limit the completion only to tags found in the task list you have to do the following:
+To show only todo completions in add/edit windows, use a dynamic `default` function:
 
 ```lua
 opts = {
     sources = {
         default = function()
-            -- Check if we're in a todo window
-            local win_config = vim.api.nvim_win_get_config(0)
-            local is_todo_window = win_config.title
-            and type(win_config.title) == "table"
-            and win_config.title[1]
-            and type(win_config.title[1]) == "table"
-            and (win_config.title[1][1] == " Add Todo " or win_config.title[1][1] == " Edit Todo ")
-
-            if is_todo_window then
+            local ui = require("todo-txt.ui")
+            if ui.is_todo_input_window() then
                 return { "todo" }
             else
                 return { "lsp", "path", "snippets", "buffer", "lazydev", "todo" }
@@ -146,6 +115,8 @@ opts = {
     }
 }
 ```
+
+This ensures that only todo tag completions appear when adding or editing tasks, while normal completions work everywhere else.
 
 ## Usage
 
@@ -160,15 +131,16 @@ The plugin provides several commands for managing your todos:
 
 ### Viewing and Adding tasks
 
-The :TodoList and :TodoDue will show a list of your todo items in a floating window, with the ability to mark them as complete, edit existing entries or add a priority.
-The :TodoAdd command will open a floating window to create a new todo item. You can also add a todo item by pressing 'a' in the Todo or Due Tasks windows.
+The `:TodoList` command shows all your todo items in a floating window, with the ability to mark them as complete, edit existing entries, or add a priority.
+The `:TodoDue` command shows only tasks with due dates (same as pressing 'd' in the todo list).
+The `:TodoAdd` command will open a floating window to create a new todo item. You can also add a todo item by pressing 'a' in the todo list window.
 
 When editing or adding a todo item, you can press `\<CR>` to save the changes.
 When you press `\<Esc>` you will be in normal mode where `\<CR>` will save and pressing `\<Esc>` will cancel.
 
 ### priorities
 
-To add a priority to a todo item, you can start the todo item with a capital letter and a colon, i.e. "A: new task".
+To add a priority when creating a todo item, you can start the todo item with a capital letter and a colon, i.e. "A: new task".
 
 If the item already exists, you can press 'p' when on the task to assign a priority.
 It has to be a capital letter between A-Z.
@@ -182,15 +154,24 @@ Default leader key mappings (can be disabled with `disable_default_mappings`):
 - `<leader>td` - Show due tasks
 - `<leader>tz` - Archive completed tasks
 
-When in the todo list or due list window:
+When in the todo list window:
 
 - `<CR>` - Marks the selected todo item as complete
 - `q`    - Close the window
 - `e`    - Edit the selected item
 - `a`    - Add a new todo item
 - `p`    - Set priority for the selected item
-- `f`    - Filters the tasks based on the @context or +project your cursor is on.
-- `r`    - Return to the complete list when in the filtered list
+- `f`    - Toggle filter by the @context or +project under cursor
+- `d`    - Toggle due date filter (combines with tag filter if active)
+- `r`    - Clear all filters and show complete list
+
+**Cascading Filters:** Filters can be combined! For example:
+
+1. Press `f` on a tag to filter by that tag (press `f` on same tag again to clear)
+2. Press `d` to further filter to only due tasks with that tag
+3. Press `d` again to show all tasks with that tag (due filter off)
+4. Press `f` on the same tag to clear tag filter (keeps due filter if active)
+5. Press `r` to clear all filters at once and return to the full list
 
 When editing a todo item:
 

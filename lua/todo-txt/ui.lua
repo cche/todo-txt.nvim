@@ -112,8 +112,8 @@ function M.update_list_window(entries, title)
     api.nvim_buf_set_keymap(list_window.buf, "n", "dd", '<cmd>lua require("todo-txt").delete_selected_entry()<CR>', opts)
     -- Toggle due filter
     api.nvim_buf_set_keymap(list_window.buf, "n", "d", '<cmd>lua require("todo-txt").toggle_due_filter()<CR>', opts)
-    -- Reset filter (show all)
-    api.nvim_buf_set_keymap(list_window.buf, "n", "r", '<cmd>lua require("todo-txt").show_todo_list()<CR>', opts)
+    -- Clear all filters (show all)
+    api.nvim_buf_set_keymap(list_window.buf, "n", "r", '<cmd>lua require("todo-txt").clear_all_filters()<CR>', opts)
   end
 
   -- Update window title if it changed

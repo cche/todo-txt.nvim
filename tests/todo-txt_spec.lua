@@ -312,4 +312,91 @@ describe("todo-txt.nvim plugin", function()
     vim.wo = original_wo
     vim.bo = original_bo
   end)
+
+  describe("filter toggle behavior", function()
+    before_each(function()
+      local ui = require("todo-txt.ui")
+      ui.setup({})
+      ui.clear_filters() -- Ensure clean state
+    end)
+
+    it("toggles tag filter on and off", function()
+      local ui = require("todo-txt.ui")
+      
+      -- Set tag filter
+      ui.set_tag_filter("@work")
+      local filters = ui.get_active_filters()
+      assert.equals("@work", filters.tag)
+      
+      -- Clear tag filter (simulating toggle off)
+      ui.set_tag_filter(nil)
+      filters = ui.get_active_filters()
+      assert.is_nil(filters.tag)
+    end)
+
+    it("switches between different tags", function()
+      local ui = require("todo-txt.ui")
+      
+      ui.set_tag_filter("@work")
+      local filters = ui.get_active_filters()
+      assert.equals("@work", filters.tag)
+      
+      ui.set_tag_filter("@home")
+      filters = ui.get_active_filters()
+      assert.equals("@home", filters.tag)
+    end)
+
+    it("preserves due filter when toggling tag filter", function()
+      local ui = require("todo-txt.ui")
+      
+      ui.toggle_due_filter() -- Turn on due filter
+      ui.set_tag_filter("@work")
+      
+      local filters = ui.get_active_filters()
+      assert.equals("@work", filters.tag)
+      assert.is_true(filters.due)
+      
+      -- Clear tag filter
+      ui.set_tag_filter(nil)
+      filters = ui.get_active_filters()
+      assert.is_nil(filters.tag)
+      assert.is_true(filters.due) -- Due filter should still be active
+    end)
+  end)
+
+  describe("clear_all_filters", function()
+    before_each(function()
+      local ui = require("todo-txt.ui")
+      ui.setup({})
+      ui.clear_filters() -- Ensure clean state
+    end)
+
+    it("clears all active filters", function()
+      local ui = require("todo-txt.ui")
+      
+      -- Set both filters
+      ui.set_tag_filter("@work")
+      ui.toggle_due_filter()
+      
+      local filters = ui.get_active_filters()
+      assert.equals("@work", filters.tag)
+      assert.is_true(filters.due)
+      
+      -- Clear all filters
+      ui.clear_filters()
+      filters = ui.get_active_filters()
+      assert.is_nil(filters.tag)
+      assert.is_false(filters.due)
+    end)
+
+    it("works when no filters are active", function()
+      local ui = require("todo-txt.ui")
+      
+      -- Clear when nothing is set
+      ui.clear_filters()
+      local filters = ui.get_active_filters()
+      assert.is_nil(filters.tag)
+      assert.is_false(filters.due)
+    end)
+  end)
 end)
