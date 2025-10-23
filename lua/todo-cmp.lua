@@ -2,6 +2,7 @@ local source = {}
 local todo = require("todo-txt")
 local parser = require("todo-txt.parser")
 local ui = require("todo-txt.ui")
+local due_helpers = require("todo-txt.due_helpers")
 
 source.new = function()
   return setmetatable({}, { __index = source })
@@ -30,7 +31,7 @@ local function get_completions()
 end
 
 source.get_trigger_characters = function()
-  return { "@", "+" }
+  return { "@", "+", ":" }
 end
 
 source.get_keyword_pattern = function()
@@ -55,6 +56,27 @@ source.complete = function(self, params, callback)
 
   -- Get the current input
   local line = params.context.cursor_before_line
+  
+  -- Check for due date shortcuts (e.g., :today, :tomorrow)
+  -- Only trigger if preceded by space or at start of line to avoid conflict with priority syntax (A:)
+  local due_shortcut = string.match(line, "%s(:[%w]*)$")
+  if due_shortcut then
+    local due_items = due_helpers.get_completion_items()
+    for _, item in ipairs(due_items) do
+      if item.shortcut:find(due_shortcut, 1, true) == 1 then
+        table.insert(items, {
+          label = item.shortcut,
+          kind = require("cmp").lsp.CompletionItemKind.Event,
+          detail = item.description .. " → due:" .. item.date,
+          insertText = item.shortcut,
+        })
+      end
+    end
+    callback(items)
+    return
+  end
+  
+  -- Check for tag completions
   local current_word = string.match(line, "[@+][%w_%-]*$")
 
   if not current_word then

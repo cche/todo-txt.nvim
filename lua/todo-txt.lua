@@ -8,6 +8,7 @@ local highlights = require("todo-txt.highlights")
 local parser = require("todo-txt.parser")
 local sortmod = require("todo-txt.sort")
 local util = require("todo-txt.util")
+local due_helpers = require("todo-txt.due_helpers")
 local M = {}
 
 -- Configuration with defaults
@@ -112,6 +113,9 @@ end
 function M.submit_edit(index)
   local lines = api.nvim_buf_get_lines(0, 0, -1, false)
   local new_content = lines[1]
+
+  -- Expand due date shortcuts (e.g., :today -> due:2025-01-23)
+  new_content = due_helpers.expand_shortcuts(new_content)
 
   local updated_entries = task.edit_entry(index, new_content)
   if updated_entries then
@@ -219,6 +223,9 @@ end
 function M.submit_new_entry()
   local lines = api.nvim_buf_get_lines(0, 0, -1, false)
   local entry = lines[1]
+
+  -- Expand due date shortcuts (e.g., :today -> due:2025-01-23)
+  entry = due_helpers.expand_shortcuts(entry)
 
   -- Extract priority from the entry (if provided)
   local priority, task_text = entry:match("^([A-Z]):%s*(.+)$")

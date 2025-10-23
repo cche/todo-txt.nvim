@@ -15,10 +15,13 @@ A Neovim plugin for managing your todo.txt files directly from within Neovim. Th
 - Add or change task priorities
 - Filter by tag (@context or +project) and/or due date
 - Cascading filters (filter by tag and due date)
+- Due date helpers with shortcuts (`:today`, `:tomorrow`, `:nextweek`, etc.)
 - Simplified blink.cmp integration
 
 ## Features I might implement in the future
 
+- [x] Add due date helpers to nvim-cmp
+- [ ] Improve tag filter by using the completion instead of being on the tag under cursor.
 - [ ] Filter tasks due today.
 - [ ] Create local (per project) todo files.
 
@@ -138,12 +141,38 @@ The `:TodoAdd` command will open a floating window to create a new todo item. Yo
 When editing or adding a todo item, you can press `\<CR>` to save the changes.
 When you press `\<Esc>` you will be in normal mode where `\<CR>` will save and pressing `\<Esc>` will cancel.
 
-### priorities
+### Priorities
 
 To add a priority when creating a todo item, you can start the todo item with a capital letter and a colon, i.e. "A: new task".
 
 If the item already exists, you can press 'p' when on the task to assign a priority.
 It has to be a capital letter between A-Z.
+
+### Due Date Helpers
+
+When adding or editing tasks, you can use convenient shortcuts that automatically expand to `due:YYYY-MM-DD` format:
+
+**Common shortcuts:**
+
+- `:today` - Today's date
+- `:tomorrow` - Tomorrow's date
+- `:nextweek` - 7 days from now
+
+**Weekday shortcuts:**
+
+- `:monday`, `:tuesday`, `:wednesday`, `:thursday`, `:friday`, `:saturday`, `:sunday` - Next occurrence of that weekday
+
+**Relative shortcuts:**
+
+- `:1d`, `:2d`, `:3d` - 1, 2, or 3 days from now
+- `:1w`, `:2w` - 1 or 2 weeks from now
+- `:1m` - 1 month (30 days) from now
+
+**Example:**
+
+Type `Buy groceries :tomorrow` and it will automatically expand to `Buy groceries due:2025-01-24` when you save.
+
+These shortcuts also appear in completion suggestions (type `:` to see them). It will only appear when preceded by a space to avoid conflict with the priority syntax (`A:`).
 
 ## Key Mappings
 
