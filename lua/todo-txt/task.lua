@@ -69,7 +69,36 @@ function M.toggle_mark_complete(index)
   else
     -- Mark as completed
     task_table.is_done = true
-    task_table.completed = os.date("%Y-%m-%d")
+    task_table.completed = os.date("%Y-%m-%dT%X")
+
+    if task_table.is_tracking then
+      task_table.end_time = os.time()
+      task_table.tracked_time = util.calculate_total_time(task_table.end_time, task_table.start_time)
+    end
+  end
+
+  entries[index] = formatter.format(task_table)
+  storage.write_entries(config.todo_file, entries)
+  return true
+end
+
+function M.toggle_mark_tracking(index)
+  local entries = storage.get_entries(config.todo_file)
+  local entry_line = get_entry_by_index(index, entries)
+  if not entry_line then
+    return false
+  end
+
+  local task_table = parser.parse(entry_line)
+
+  if task_table.is_tracking then
+    -- Stop tracking, mark current total tracked
+    task_table.is_tracking = false
+    task_table.end_time = os.time()
+    task_table.tracked_time = util.calculate_total_time(task_table.end_time, task_table.start_time)
+  else
+    task_table.is_tracking = true
+    task_table.start_time = os.time()
   end
 
   entries[index] = formatter.format(task_table)

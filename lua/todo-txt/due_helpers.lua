@@ -6,6 +6,12 @@ local function format_date(year, month, day)
   return string.format("%04d-%02d-%02d", year, month, day)
 end
 
+local function get_current_date()
+    local time = os.time()
+    local date = os.date("*t", time)
+    return format_date(date.year, date.month, date.day)
+end
+
 -- Add days to current date
 local function add_days(days)
   local time = os.time() + (days * 24 * 60 * 60)
@@ -44,6 +50,8 @@ M.shortcuts = {
   [":1w"] = function() return add_days(7) end,
   [":2w"] = function() return add_days(14) end,
   [":1m"] = function() return add_days(30) end,
+  [":start"] = function() return get_current_date() end,
+  [":end"] = function() return get_current_date() end,
 }
 
 -- Expand due date shortcuts in text
