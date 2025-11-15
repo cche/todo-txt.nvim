@@ -22,19 +22,19 @@ end
 
 --Extract start time from the line
 function M.extract_start_time(line)
-  return line:match("start_time:%d+")
+  return line:match("%d+")
 end
 
 function M.extract_prev_start(line)
-  return line:match("prev_start:%d+")
+  return line:match("%d+")
 end
 
 function M.extract_prev_end(line)
-  return line:match("prev_end:%d+")
+  return line:match("%d+")
 end
 --Extract end time from the line
 function M.extract_end_time(line)
-  return line:match("end_time:%d+")
+  return line:match("%d+")
 end
 
 --Extract the human-friendly tracked time from the line

@@ -30,7 +30,7 @@ function M.calculate_total_time(end_time, start_time, prev_end, prev_start)
   local prevHour = 0
 
   if prev_end and prev_start then
-    local prevDiffSec = os.difftime(prev_end, prev_start)
+    local prevDiffSec = os.difftime(tonumber(prev_end), tonumber(prev_start))
     local prevDiffMin = prevDiffSec / 60
     local prevDiffHour = prevDiffMin / 60
     local prevSecMod = math.fmod(prevDiffSec, 60)
@@ -42,7 +42,7 @@ function M.calculate_total_time(end_time, start_time, prev_end, prev_start)
   end
 
   local string = 'total_time: '
-  local diffSec = os.difftime(end_time, start_time)
+  local diffSec = os.difftime(tonumber(end_time), tonumber(start_time)
   local diffMin = diffSec / 60
   local diffHour = diffMin / 60
   local secMod = math.fmod(diffSec, 60)
