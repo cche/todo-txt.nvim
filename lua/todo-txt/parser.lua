@@ -25,6 +25,13 @@ function M.extract_start_time(line)
   return line:match("start_time:%d+")
 end
 
+function M.extract_prev_start(line)
+  return line:match("prev_start:%d+")
+end
+
+function M.extract_prev_end(line)
+  return line:match("prev_end:%d+")
+end
 --Extract end time from the line
 function M.extract_end_time(line)
   return line:match("end_time:%d+")
@@ -92,6 +99,8 @@ function M.parse(line)
   local is_done = M.is_done(line)
   local contexts, projects = M.extract_tags(line)
   local start_time = M.extract_start_time(line)
+  local prev_start = M.extract_prev_start(line)
+  local prev_end = M.extract_prev_end(line)
   local end_time = M.extract_end_time(line)
   local is_tracking = M.is_tracking(line)
   local tracked_time = M.extract_tracked_time(line)
@@ -131,7 +140,9 @@ function M.parse(line)
     start_time = start_time,
     end_time = end_time,
     is_tracking = is_tracking,
-    tracked_time = tracked_time
+    tracked_time = tracked_time,
+    prev_start = prev_start,
+    prev_end = prev_end
   }
 end
 
