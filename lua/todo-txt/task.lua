@@ -95,8 +95,12 @@ function M.toggle_mark_tracking(index)
     -- Stop tracking, mark current total tracked
     task_table.is_tracking = false
     task_table.end_time = os.time()
-    task_table.tracked_time = util.calculate_total_time(task_table.end_time, task_table.start_time)
+    task_table.tracked_time = util.calculate_total_time(task_table.end_time, task_table.start_time, task_table.prev_end, task_table.prev_start)
   else
+      if task_table.end_time then
+        task_table.prev_start = task_table.start_time
+        task_table.prev_end = task_table.end_time
+      end
     task_table.is_tracking = true
     task_table.start_time = os.time()
   end

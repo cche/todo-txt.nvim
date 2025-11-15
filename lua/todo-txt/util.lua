@@ -24,12 +24,27 @@ function M.get_current_task_index()
   return index
 end
 
-function M.calculate_total_time(end_time, start_time)
-  local string = '#TotalTime: '
+function M.calculate_total_time(end_time, start_time, prev_end, prev_start)
+  local prevSec = 0
+  local prevMin = 0
+  local prevHour = 0
+
+  if prev_end and prev_start then
+    local prevDiffSec = os.difftime(prev_end, prev_start)
+    local prevDiffMin = prevDiffSec / 60
+    local prevDiffHour = prevDiffMin / 60
+    local prevSecMod = math.fmod(prevDiffSec, 60)
+    local prevMinMod = math.fmod(prevDiffMin, 60)
+
+    prevSec = math.floor(prevSecMod)
+    prevMin = math.floor(prevMinMod)
+    prevHour = math.floor(prevDiffHour)
+  end
+
+  local string = 'total_time: '
   local diffSec = os.difftime(end_time, start_time)
   local diffMin = diffSec / 60
   local diffHour = diffMin / 60
-
   local secMod = math.fmod(diffSec, 60)
   local minMod = math.fmod(diffMin, 60)
 
@@ -38,15 +53,15 @@ function M.calculate_total_time(end_time, start_time)
   local hourFlat = math.floor(diffHour)
 
   if hourFlat > 0 then
-    string = string .. hourFlat .. " Hours "
+    string = string .. hourFlat + prevHour .. " Hours "
   end
 
-  if minFlat > 0 then 
-    string = string .. minFlat .. " Minutes "
+  if minFlat > 0 then
+    string = string .. minFlat + prevMin.. " Minutes "
   end
 
   if hourFlat < 1 and secFlat > 0 then
-    string = string .. secFlat .. " Seconds"
+    string = string .. secFlat + prevSec .. " Seconds"
   end
 
   return string
