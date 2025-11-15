@@ -94,9 +94,7 @@ end
 
 -- Show edit window for an entry
 function M.show_edit_window()
-  local current_line = api.nvim_win_get_cursor(0)[1]
-  local line_content = api.nvim_buf_get_lines(0, current_line - 1, current_line, false)[1]
-  local index = tonumber(line_content:match("^%s*(%d+)%."))
+  local index = util.get_current_task_index()
 
   if not index then
     return
@@ -129,9 +127,7 @@ end
 
 -- Show priority window for an entry
 function M.show_priority_window()
-  local current_line = api.nvim_win_get_cursor(0)[1]
-  local line_content = api.nvim_buf_get_lines(0, current_line - 1, current_line, false)[1]
-  local index = tonumber(line_content:match("^%s*(%d+)%."))
+  local index = util.get_current_task_index()
 
   if not index then
     return
@@ -244,19 +240,22 @@ function M.submit_new_entry()
 end
 
 function M.delete_selected_entry()
-  local current_line = api.nvim_win_get_cursor(0)[1]
-  local line_content = api.nvim_buf_get_lines(0, current_line - 1, current_line, false)[1]
-  local index = tonumber(line_content:match("^%s*(%d+)%."))
+  local index = util.get_current_task_index()
   if index and task.delete_entry(index) then
     ui.refresh_current_list()
   end
 end
 
 function M.toggle_selected_complete()
-  local current_line = api.nvim_win_get_cursor(0)[1]
-  local line_content = api.nvim_buf_get_lines(0, current_line - 1, current_line, false)[1]
-  local index = tonumber(line_content:match("^%s*(%d+)%."))
+  local index = util.get_current_task_index()
   if index and task.toggle_mark_complete(index) then
+    ui.refresh_current_list()
+  end
+end
+
+function M.toggle_selected_tracking()
+  local index = util.get_current_task_index()
+  if index and task.toggle_mark_tracking(index) then
     ui.refresh_current_list()
   end
 end

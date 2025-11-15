@@ -15,6 +15,26 @@ function M.is_done(line)
   return line:match("^x ") ~= nil
 end
 
+-- Determine if the entry is currently being tracked
+function M.is_tracking(line)
+  return line:match("#tracking_todo#") ~= nil
+end
+
+--Extract start time from the line
+function M.extract_start_time(line)
+  return line:match("start_time:%d+")
+end
+
+--Extract end time from the line
+function M.extract_end_time(line)
+  return line:match("end_time:%d+")
+end
+
+--Extract the human-friendly tracked time from the line
+function M.extract_tracked_time(line)
+  return line:match("total_time: %d+ %a+ %d+ %a+")
+end
+
 -- Extract creation date (first YYYY-MM-DD after optional priority/complete markers)
 function M.extract_created(line)
   return line:match("%f[%d](%d%d%d%d%-%d%d%-%d%d)%f[^%d]")
@@ -71,6 +91,10 @@ function M.parse(line)
   local completed = M.extract_completed(line)
   local is_done = M.is_done(line)
   local contexts, projects = M.extract_tags(line)
+  local start_time = M.extract_start_time(line)
+  local end_time = M.extract_end_time(line)
+  local is_tracking = M.is_tracking(line)
+  local tracked_time = M.extract_tracked_time(line)
 
   -- If completed and no leading priority, allow capturing priority immediately after 'x '
   if is_done and not priority then
@@ -104,6 +128,10 @@ function M.parse(line)
     is_done = is_done,
     contexts = contexts,
     projects = projects,
+    start_time = start_time,
+    end_time = end_time,
+    is_tracking = is_tracking,
+    tracked_time = tracked_time
   }
 end
 
