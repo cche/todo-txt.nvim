@@ -62,10 +62,10 @@ end
 function M.extract_tags(line)
   local contexts, projects = {}, {}
   for ctx in line:gmatch("@([%w_%-]+)") do
-      contexts[ctx] = true
+    contexts[ctx] = true
   end
   for proj in line:gmatch("%+([%w_%-]+)") do
-      projects[proj] = true
+    projects[proj] = true
   end
   return contexts, projects
 end
