@@ -24,11 +24,11 @@ local function get_entry_by_index(index, entries)
 end
 
 local function is_valid_index(index, entries_count)
-    if index < 1 or index > entries_count then
-        util.notify_error(string.format("Invalid index %s (entries: %d)", tostring(index), entries_count))
-        return false
-    end
-    return true
+  if index < 1 or index > entries_count then
+    util.notify_error(string.format("Invalid index %s (entries: %d)", tostring(index), entries_count))
+    return false
+  end
+  return true
 end
 
 -- Function to add a new entry to the todo.txt file
@@ -163,9 +163,9 @@ function M.set_priority(index, priority)
   local task_table = parser.parse(entry_line)
 
   if priority and priority:match("^[A-Z]$") then
-      task_table.priority = priority
+    task_table.priority = priority
   else
-      task_table.priority = nil
+    task_table.priority = nil
   end
 
   entries[index] = formatter.format(task_table)

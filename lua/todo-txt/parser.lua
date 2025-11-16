@@ -75,20 +75,20 @@ end
 function M.extract_tag_positions(line)
   local positions = {}
   for start_idx, word in line:gmatch("()%+([%w_%-]+)") do
-      local len = 1 + #word -- includes '+'
-      table.insert(positions, {
-          kind = 'project',
-          start_col = start_idx - 1,
-          end_col = (start_idx - 1) + len,
-      })
+    local len = 1 + #word -- includes '+'
+    table.insert(positions, {
+      kind = 'project',
+      start_col = start_idx - 1,
+      end_col = (start_idx - 1) + len,
+    })
   end
   for start_idx, word in line:gmatch("()@([%w_%-]+)") do
-      local len = 1 + #word -- includes '@'
-      table.insert(positions, {
-          kind = 'context',
-          start_col = start_idx - 1,
-          end_col = (start_idx - 1) + len,
-      })
+    local len = 1 + #word -- includes '@'
+    table.insert(positions, {
+      kind = 'context',
+      start_col = start_idx - 1,
+      end_col = (start_idx - 1) + len,
+    })
   end
   return positions
 end
@@ -123,7 +123,7 @@ function M.parse(line)
   if is_done and not priority then
     local pri_after_done = line:match("^x %((%u)%)")
     if pri_after_done then
-        priority = pri_after_done
+      priority = pri_after_done
     end
   end
 
