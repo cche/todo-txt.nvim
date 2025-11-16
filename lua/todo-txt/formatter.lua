@@ -25,30 +25,23 @@ function M.format(task_table)
   end
 
   if task_table.is_tracking then
-    table.insert(parts, "#tracking_todo#")
-  end
-
-  if task_table.start_time then
-    table.insert(parts, "start_time:" .. task_table.start_time)
-  end
-
-  if task_table.prev_start then
-    table.insert(parts, "prev_start:" .. task_table.prev_start)
-  end
-
-  if task_table.prev_end then
-    table.insert(parts, "prev_end:" .. task_table.prev_end)
-  end
-
-  if task_table.end_time then
-    table.insert(parts, "end_time:" .. task_table.end_time)
+    table.insert(parts, "#track#")
   end
 
   if task_table.tracked_time then
-    table.insert(parts, "total_time: ".. task_table.tracked_time)
+    table.insert(parts, task_table.tracked_time)
   end
+
   -- Add the pure task description
   table.insert(parts, task_table.line)
+
+  if task_table.start_time then
+    table.insert(parts, "start:" .. task_table.start_time)
+  end
+
+  if task_table.end_time then
+    table.insert(parts, "end:" .. task_table.end_time)
+  end
 
   return table.concat(parts, " ")
 end

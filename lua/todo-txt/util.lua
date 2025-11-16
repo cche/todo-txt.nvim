@@ -1,4 +1,5 @@
 local api = vim.api
+local parser = require("todo-txt.parser")
 
 local M = {}
 
@@ -24,25 +25,9 @@ function M.get_current_task_index()
   return index
 end
 
-function M.calculate_total_time(end_time, start_time, prev_end, prev_start)
-  local prevSec = 0
-  local prevMin = 0
-  local prevHour = 0
-
-  if prev_end and prev_start then
-    local prevDiffSec = os.difftime(tonumber(prev_end), tonumber(prev_start))
-    local prevDiffMin = prevDiffSec / 60
-    local prevDiffHour = prevDiffMin / 60
-    local prevSecMod = math.fmod(prevDiffSec, 60)
-    local prevMinMod = math.fmod(prevDiffMin, 60)
-
-    prevSec = math.floor(prevSecMod)
-    prevMin = math.floor(prevMinMod)
-    prevHour = math.floor(prevDiffHour)
-  end
-
-  local string = 'total_time: '
-  local diffSec = os.difftime(tonumber(end_time), tonumber(start_time)
+function M.calculate_total_time(end_time, start_time, prevHour, prevMin, prevSec)
+  local string = 'total: '
+  local diffSec = os.difftime(tonumber(end_time), tonumber(start_time))
   local diffMin = diffSec / 60
   local diffHour = diffMin / 60
   local secMod = math.fmod(diffSec, 60)
@@ -52,19 +37,34 @@ function M.calculate_total_time(end_time, start_time, prev_end, prev_start)
   local minFlat = math.floor(minMod)
   local hourFlat = math.floor(diffHour)
 
-  if hourFlat > 0 then
-    string = string .. hourFlat + prevHour .. " Hours "
+  -- Add previous values
+  local totalSec = secFlat + prevSec
+  local totalMin = minFlat + prevMin
+  local totalHour = hourFlat + prevHour
+
+  -- Handle seconds overflow (carry to minutes)
+  if totalSec >= 60 then
+    totalMin = totalMin + math.floor(totalSec / 60)
+    totalSec = math.fmod(totalSec, 60)
   end
 
-  if minFlat > 0 then
-    string = string .. minFlat + prevMin.. " Minutes "
+  -- Handle minutes overflow (carry to hours)
+  if totalMin >= 60 then
+    totalHour = totalHour + math.floor(totalMin / 60)
+    totalMin = math.fmod(totalMin, 60)
   end
 
-  if hourFlat < 1 and secFlat > 0 then
-    string = string .. secFlat + prevSec .. " Seconds"
+  -- Build string
+  if totalHour > 0 then
+    string = string .. totalHour .. "h "
+  end
+
+  string = string .. totalMin .. "m "
+
+  if totalHour < 1 then
+    string = string .. totalSec .. "s "
   end
 
   return string
 end
-
 return M

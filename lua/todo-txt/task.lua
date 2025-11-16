@@ -69,12 +69,19 @@ function M.toggle_mark_complete(index)
   else
     -- Mark as completed
     task_table.is_done = true
-    task_table.completed = os.date("%Y-%m-%dT%X")
+    task_table.completed = os.date("%Y-%m-%d")
 
     if task_table.is_tracking then
+      task_table.is_tracking = false
       task_table.end_time = os.time()
-      task_table.tracked_time = util.calculate_total_time(task_table.end_time, task_table.start_time)
+      if task_table.tracked_time then
+        local prevHour, prevMin, prevSec = parser.extract_previous_total(task_table.tracked_time)
+        task_table.tracked_time = util.calculate_total_time(task_table.end_time, task_table.start_time, prevHour, prevMin, prevSec)
+      else
+        task_table.tracked_time = util.calculate_total_time(task_table.end_time, task_table.start_time, 0, 0, 0)
+      end
     end
+
   end
 
   entries[index] = formatter.format(task_table)
@@ -92,15 +99,15 @@ function M.toggle_mark_tracking(index)
   local task_table = parser.parse(entry_line)
 
   if task_table.is_tracking then
-    -- Stop tracking, mark current total tracked
     task_table.is_tracking = false
     task_table.end_time = os.time()
-    task_table.tracked_time = util.calculate_total_time(task_table.end_time, task_table.start_time, task_table.prev_end, task_table.prev_start)
+    if task_table.tracked_time then
+      local prevHour, prevMin, prevSec = parser.extract_previous_total(task_table.tracked_time)
+      task_table.tracked_time = util.calculate_total_time(task_table.end_time, task_table.start_time, prevHour, prevMin, prevSec)
+    else
+      task_table.tracked_time = util.calculate_total_time(task_table.end_time, task_table.start_time, 0, 0, 0)
+    end
   else
-      if task_table.end_time then
-        task_table.prev_start = task_table.start_time
-        task_table.prev_end = task_table.end_time
-      end
     task_table.is_tracking = true
     task_table.start_time = os.time()
   end
