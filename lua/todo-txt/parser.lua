@@ -20,21 +20,22 @@ function M.is_tracking(line)
     return line:match("#track#") ~= nil
 end
 
---Extract start time from the line
+-- Extract start time from the line
 function M.extract_start_time(line)
     return line:match("start:(%d+)")
 end
 
---Extract end time from the line
+-- Extract end time from the line
 function M.extract_end_time(line)
     return line:match("end:(%d+)")
 end
 
---Extract the human-friendly tracked time from the line
+-- Extract the human-friendly tracked time from the line
 function M.extract_tracked_time(line)
     return line:match("total:%s%d+%a%s%d+%a%s")
 end
 
+-- Parse previously tracked time from total field and return hours, minutes, seconds
 function M.extract_previous_total(line)
     local hours, minutes = line:match("total:%s(%d+)h%s(%d+)m")
     if hours then
@@ -92,7 +93,8 @@ function M.extract_tag_positions(line)
     return positions
 end
 
--- Clean tracking metadata from task description
+-- Clean tracking metadata from task description to get pure task text
+-- Removes: #track# marker, start/end timestamps, and total time information
 function M.clean_tracking_metadata(description)
     local clean_line = description
     clean_line = clean_line:gsub("#track#", " ")
