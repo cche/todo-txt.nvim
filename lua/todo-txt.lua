@@ -228,7 +228,8 @@ function M.submit_new_entry()
   entry = due_helpers.expand_shortcuts(entry)
 
   -- Extract priority from the entry (if provided)
-  local priority, task_text = entry:match("^([A-Z]):%s*(.+)$")
+  local priority, task_text = entry:match("^([A-Za-z]):%s*(.+)$")
+  priority = priority and string.upper(priority)
 
   if not priority then
     task_text = entry
