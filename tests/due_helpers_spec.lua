@@ -129,7 +129,7 @@ describe("Due date helpers", function()
     it("returns completion items with all required fields", function()
       local items = due_helpers.get_completion_items()
       assert.is_true(#items > 0)
-      
+
       for _, item in ipairs(items) do
         assert.is_not_nil(item.shortcut)
         assert.is_not_nil(item.date)
@@ -146,7 +146,7 @@ describe("Due date helpers", function()
       for _, item in ipairs(items) do
         shortcuts[item.shortcut] = true
       end
-      
+
       assert.is_true(shortcuts[":today"])
       assert.is_true(shortcuts[":tomorrow"])
       assert.is_true(shortcuts[":nextweek"])
@@ -160,43 +160,55 @@ describe("Due date helpers", function()
     it("calculates :tomorrow as one day ahead", function()
       local today_text = "Task :today"
       local tomorrow_text = "Task :tomorrow"
-      
+
       local today_result = due_helpers.expand_shortcuts(today_text)
       local tomorrow_result = due_helpers.expand_shortcuts(tomorrow_text)
-      
+
       local today_date = today_result:match("due:(%d%d%d%d%-%d%d%-%d%d)")
       local tomorrow_date = tomorrow_result:match("due:(%d%d%d%d%-%d%d%-%d%d)")
-      
+
       -- Parse dates
       local ty, tm, td = today_date:match("(%d+)%-(%d+)%-(%d+)")
       local tomy, tomm, tomd = tomorrow_date:match("(%d+)%-(%d+)%-(%d+)")
-      
-      local today_time = os.time({year=ty, month=tm, day=td})
-      local tomorrow_time = os.time({year=tomy, month=tomm, day=tomd})
-      
+
+      local today_time = os.time({ year = ty, month = tm, day = td })
+      local tomorrow_time = os.time({ year = tomy, month = tomm, day = tomd })
+
       -- Tomorrow should be 1 day (86400 seconds) ahead
-      assert.equals(86400, tomorrow_time - today_time)
+      -- Allow 1 hour variance for daylight saving time transitions
+      local diff = tomorrow_time - today_time
+      local expected = 86400
+      assert.is_true(
+        math.abs(diff - expected) <= 3600,
+        string.format("Expected ~1 day (%d seconds), got %d seconds (diff: %d)", expected, diff, diff - expected)
+      )
     end)
 
     it("calculates :nextweek as 7 days ahead", function()
       local today_text = "Task :today"
       local nextweek_text = "Task :nextweek"
-      
+
       local today_result = due_helpers.expand_shortcuts(today_text)
       local nextweek_result = due_helpers.expand_shortcuts(nextweek_text)
-      
+
       local today_date = today_result:match("due:(%d%d%d%d%-%d%d%-%d%d)")
       local nextweek_date = nextweek_result:match("due:(%d%d%d%d%-%d%d%-%d%d)")
-      
+
       -- Parse dates
       local ty, tm, td = today_date:match("(%d+)%-(%d+)%-(%d+)")
       local nwy, nwm, nwd = nextweek_date:match("(%d+)%-(%d+)%-(%d+)")
-      
-      local today_time = os.time({year=ty, month=tm, day=td})
-      local nextweek_time = os.time({year=nwy, month=nwm, day=nwd})
-      
+
+      local today_time = os.time({ year = ty, month = tm, day = td })
+      local nextweek_time = os.time({ year = nwy, month = nwm, day = nwd })
+
       -- Next week should be 7 days (604800 seconds) ahead
-      assert.equals(604800, nextweek_time - today_time)
+      -- Allow 1 hour variance for daylight saving time transitions
+      local diff = nextweek_time - today_time
+      local expected = 604800
+      assert.is_true(
+        math.abs(diff - expected) <= 3600,
+        string.format("Expected ~7 days (%d seconds), got %d seconds (diff: %d)", expected, diff, diff - expected)
+      )
     end)
   end)
 end)
