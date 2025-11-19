@@ -399,4 +399,59 @@ describe("todo-txt.nvim plugin", function()
       assert.is_false(filters.due)
     end)
   end)
+
+  describe("refresh_current_list", function()
+    before_each(function()
+      local ui = require("todo-txt.ui")
+      ui.setup({
+        window = {
+          width = 80,
+          height = 20,
+          border = "rounded",
+        },
+      })
+      ui.clear_filters()
+    end)
+
+    it("preserves active tag and due filters when refreshing", function()
+      local ui = require("todo-txt.ui")
+
+      -- Prepare some tasks
+      storage.write_entries(test_todo_file, {
+        "2025-01-01 Task @work due:2025-01-02",
+        "2025-01-01 Task @home",
+      })
+
+      -- Ensure todo uses the spec files
+      todo.config = {
+        todo_file = test_todo_file,
+        done_file = test_done_file,
+        window = {
+          width = 80,
+          height = 20,
+          border = "rounded",
+        },
+      }
+
+      -- Set combined filters
+      ui.set_tag_filter("@work")
+      ui.toggle_due_filter() -- enable due filter
+
+      local before = ui.get_active_filters()
+
+      -- Initial render with filters
+      todo.show_todo_list()
+
+      -- Refresh via helper (this is what add/edit/complete paths use)
+      ui.refresh_current_list()
+
+      local after = ui.get_active_filters()
+
+      -- Filters should be unchanged
+      assert.equals(before.tag, after.tag)
+      assert.equals(before.due, after.due)
+      assert.equals("@work", after.tag)
+      assert.is_true(after.due)
+    end)
+  end)
 end)
