@@ -143,7 +143,7 @@ end
 -- Submit priority from priority window
 function M.submit_priority()
   local lines = api.nvim_buf_get_lines(0, 0, -1, false)
-  local priority = lines[1]
+  local priority = string.upper(lines[1])
   local index = api.nvim_buf_get_var(0, "todo_index")
 
   -- Close the priority window
