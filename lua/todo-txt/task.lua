@@ -77,8 +77,8 @@ function M.toggle_mark_complete(index)
       if task_table.tracked_time then
         -- Add current session to previously accumulated time
         local prevHour, prevMin, prevSec = parser.extract_previous_total(task_table.tracked_time)
-        task_table.tracked_time = util.calculate_total_time(task_table.end_time, task_table.start_time, prevHour,
-            prevMin, prevSec)
+        task_table.tracked_time =
+          util.calculate_total_time(task_table.end_time, task_table.start_time, prevHour, prevMin, prevSec)
       else
         -- First and final tracking session
         task_table.tracked_time = util.calculate_total_time(task_table.end_time, task_table.start_time, 0, 0, 0)
@@ -107,19 +107,17 @@ function M.toggle_mark_tracking(index)
 
   if task_table.start_time then
     -- Stop tracking: calculate and accumulate total time
-    task_table.end_time = os.time()
+    local end_time = os.time()
 
     if task_table.tracked_time then
       -- Add current session time to previously tracked time
       local prevHour, prevMin, prevSec = parser.extract_previous_total(task_table.tracked_time)
-      task_table.tracked_time = util.calculate_total_time(task_table.end_time, task_table.start_time, prevHour,
-          prevMin, prevSec)
+      task_table.tracked_time = util.calculate_total_time(end_time, task_table.start_time, prevHour, prevMin, prevSec)
     else
       -- First tracking session - start from zero
-      task_table.tracked_time = util.calculate_total_time(task_table.end_time, task_table.start_time, 0, 0, 0)
+      task_table.tracked_time = util.calculate_total_time(end_time, task_table.start_time, 0, 0, 0)
     end
 
-    task_table.end_time = nil
     task_table.start_time = nil
   else
     -- Start tracking: mark as active and record start time

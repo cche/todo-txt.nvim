@@ -32,11 +32,6 @@ function M.format(task_table)
     table.insert(parts, "start:" .. task_table.start_time)
   end
 
-  -- Add end timestamp when tracking session is stopped
-  if task_table.end_time then
-    table.insert(parts, "end:" .. task_table.end_time)
-  end
-
   -- Add accumulated time tracking information if present
   if task_table.tracked_time then
     table.insert(parts, task_table.tracked_time)

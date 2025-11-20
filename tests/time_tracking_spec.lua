@@ -4,408 +4,408 @@ local parser = require("todo-txt.parser")
 local util = require("todo-txt.util")
 
 describe("time_tracking", function()
-    local config = { todo_file = vim.fn.tempname(), done_file = vim.fn.tempname() }
-    task.setup(config)
+  local config = { todo_file = vim.fn.tempname(), done_file = vim.fn.tempname() }
+  task.setup(config)
 
-    before_each(function()
-        pcall(vim.loop.fs_unlink, config.todo_file)
-        pcall(vim.loop.fs_unlink, config.done_file)
-        local f = io.open(config.todo_file, "w")
-        if f then
-            f:close()
-        end
-        local f2 = io.open(config.done_file, "w")
-        if f2 then
-            f2:close()
-        end
+  before_each(function()
+    pcall(vim.loop.fs_unlink, config.todo_file)
+    pcall(vim.loop.fs_unlink, config.done_file)
+    local f = io.open(config.todo_file, "w")
+    if f then
+      f:close()
+    end
+    local f2 = io.open(config.done_file, "w")
+    if f2 then
+      f2:close()
+    end
+  end)
+
+  describe("basic start/stop tracking", function()
+    it("should start tracking a task", function()
+      task.add_entry("test task", "A")
+      local before_time = os.time()
+
+      assert.truthy(task.toggle_mark_tracking(1))
+
+      local entries = storage.get_entries(config.todo_file)
+      local t = parser.parse(entries[1])
+
+      assert.is_truthy(t.start_time)
+      local start_time = tonumber(t.start_time)
+      assert.is_true(start_time >= before_time and start_time <= os.time())
+      assert.is_nil(t.tracked_time)
+      assert.equals("test task", t.line)
     end)
 
-    describe("basic start/stop tracking", function()
-        it("should start tracking a task", function()
-            task.add_entry("test task", "A")
-            local before_time = os.time()
+    it("should stop tracking and calculate time", function()
+      task.add_entry("test task", "A")
 
-            assert.truthy(task.toggle_mark_tracking(1))
+      -- Start tracking
+      assert.truthy(task.toggle_mark_tracking(1))
 
-            local entries = storage.get_entries(config.todo_file)
-            local t = parser.parse(entries[1])
+      -- Wait a moment to ensure time passes
+      os.execute("sleep 1")
 
-            assert.is_truthy(t.start_time)
-            local start_time = tonumber(t.start_time)
-            assert.is_true(start_time >= before_time and start_time <= os.time())
-            assert.is_nil(t.tracked_time)
-            assert.equals("test task", t.line)
-        end)
+      -- Stop tracking
+      assert.truthy(task.toggle_mark_tracking(1))
 
-        it("should stop tracking and calculate time", function()
-            task.add_entry("test task", "A")
+      local entries = storage.get_entries(config.todo_file)
+      local t = parser.parse(entries[1])
 
-            -- Start tracking
-            assert.truthy(task.toggle_mark_tracking(1))
-
-            -- Wait a moment to ensure time passes
-            os.execute("sleep 1")
-
-            -- Stop tracking
-            assert.truthy(task.toggle_mark_tracking(1))
-
-            local entries = storage.get_entries(config.todo_file)
-            local t = parser.parse(entries[1])
-
-            assert.is_nil(t.start_time)
-            assert.is_truthy(t.tracked_time)
-            assert.is_truthy(t.tracked_time:match("tracked:"))
-            assert.equals("test task", t.line)
-        end)
-
-        it("should allow restarting tracking after stopping", function()
-            task.add_entry("test task", "A")
-
-            -- Start tracking
-            assert.truthy(task.toggle_mark_tracking(1))
-            os.execute("sleep 1")
-
-            -- Stop tracking
-            assert.truthy(task.toggle_mark_tracking(1))
-
-            local entries = storage.get_entries(config.todo_file)
-            local t = parser.parse(entries[1])
-            local first_tracked = t.tracked_time
-
-            -- Restart tracking
-            assert.truthy(task.toggle_mark_tracking(1))
-
-            entries = storage.get_entries(config.todo_file)
-            t = parser.parse(entries[1])
-
-            assert.is_truthy(t.start_time)
-            assert.is_truthy(t.tracked_time)
-            assert.equals(first_tracked, t.tracked_time)
-            assert.equals("test task", t.line)
-        end)
-
-        it("should preserve task properties when tracking", function()
-            task.add_entry("test task with +project @context", "B")
-
-            assert.truthy(task.toggle_mark_tracking(1))
-
-            local entries = storage.get_entries(config.todo_file)
-            local t = parser.parse(entries[1])
-
-            assert.equals("B", t.priority)
-            assert.is_truthy(t.created)
-            assert.is_truthy(t.projects["project"])
-            assert.is_truthy(t.contexts["context"])
-            assert.equals("test task with +project @context", t.line)
-        end)
+      assert.is_nil(t.start_time)
+      assert.is_truthy(t.tracked_time)
+      assert.is_truthy(t.tracked_time:match("tracked:"))
+      assert.equals("test task", t.line)
     end)
 
-    describe("integration with task completion", function()
-        it("should stop tracking when marking task complete", function()
-            task.add_entry("test task", "A")
+    it("should allow restarting tracking after stopping", function()
+      task.add_entry("test task", "A")
 
-            -- Start tracking
-            assert.truthy(task.toggle_mark_tracking(1))
-            os.execute("sleep 1")
+      -- Start tracking
+      assert.truthy(task.toggle_mark_tracking(1))
+      os.execute("sleep 1")
 
-            -- Mark complete (should stop tracking)
-            assert.truthy(task.toggle_mark_complete(1))
+      -- Stop tracking
+      assert.truthy(task.toggle_mark_tracking(1))
 
-            local entries = storage.get_entries(config.todo_file)
-            local t = parser.parse(entries[1])
+      local entries = storage.get_entries(config.todo_file)
+      local t = parser.parse(entries[1])
+      local first_tracked = t.tracked_time
 
-            assert.is_true(t.is_done)
-            assert.is_nil(t.start_time)
-            assert.is_truthy(t.tracked_time)
-            assert.is_truthy(t.completed)
-            assert.equals("test task", t.line)
-        end)
+      -- Restart tracking
+      assert.truthy(task.toggle_mark_tracking(1))
 
-        it("should complete task normally when not tracking", function()
-            task.add_entry("test task", "A")
+      entries = storage.get_entries(config.todo_file)
+      t = parser.parse(entries[1])
 
-            assert.truthy(task.toggle_mark_complete(1))
-
-            local entries = storage.get_entries(config.todo_file)
-            local t = parser.parse(entries[1])
-
-            assert.is_true(t.is_done)
-            assert.is_nil(t.start_time)
-            assert.is_nil(t.tracked_time)
-            assert.is_truthy(t.completed)
-            assert.equals("test task", t.line)
-        end)
-
-        it("should preserve tracked time when uncompleting task", function()
-            task.add_entry("test task", "A")
-
-            -- Start tracking, stop, then complete
-            assert.truthy(task.toggle_mark_tracking(1))
-            os.execute("sleep 1")
-            assert.truthy(task.toggle_mark_tracking(1))
-
-            local entries = storage.get_entries(config.todo_file)
-            local t = parser.parse(entries[1])
-            local tracked_time = t.tracked_time
-
-            -- Complete then uncomplete
-            assert.truthy(task.toggle_mark_complete(1))
-            assert.truthy(task.toggle_mark_complete(1))
-
-            entries = storage.get_entries(config.todo_file)
-            t = parser.parse(entries[1])
-
-            assert.is_false(t.is_done)
-            assert.equals(tracked_time, t.tracked_time)
-            assert.equals("test task", t.line)
-        end)
-
-        it("should preserve priority when completing tracked task", function()
-            task.add_entry("test task", "A")
-
-            assert.truthy(task.toggle_mark_tracking(1))
-            os.execute("sleep 1")
-            assert.truthy(task.toggle_mark_complete(1))
-
-            local entries = storage.get_entries(config.todo_file)
-            local t = parser.parse(entries[1])
-
-            assert.is_true(t.is_done)
-            assert.equals("A", t.priority)
-            assert.is_truthy(t.tracked_time)
-            assert.equals("test task", t.line)
-        end)
+      assert.is_truthy(t.start_time)
+      assert.is_truthy(t.tracked_time)
+      assert.equals(first_tracked, t.tracked_time)
+      assert.equals("test task", t.line)
     end)
 
-    describe("time calculation and formatting", function()
-        it("should format time less than 1 minute with seconds", function()
-            local end_time = 1000
-            local start_time = 970 -- 30 seconds
-            local result = util.calculate_total_time(end_time, start_time, 0, 0, 0)
+    it("should preserve task properties when tracking", function()
+      task.add_entry("test task with +project @context", "B")
 
-            assert.equals("tracked: 0m 30s ", result)
-        end)
+      assert.truthy(task.toggle_mark_tracking(1))
 
-        it("should format time less than 1 hour with minutes and seconds", function()
-            local end_time = 2000
-            local start_time = 1500 -- 500 seconds = 8 minutes 20 seconds
-            local result = util.calculate_total_time(end_time, start_time, 0, 0, 0)
+      local entries = storage.get_entries(config.todo_file)
+      local t = parser.parse(entries[1])
 
-            assert.equals("tracked: 8m 20s ", result)
-        end)
+      assert.equals("B", t.priority)
+      assert.is_truthy(t.created)
+      assert.is_truthy(t.projects["project"])
+      assert.is_truthy(t.contexts["context"])
+      assert.equals("test task with +project @context", t.line)
+    end)
+  end)
 
-        it("should format time over 1 hour without seconds", function()
-            local end_time = 10000
-            local start_time = 6400 -- 3600 seconds = 1 hour
-            local result = util.calculate_total_time(end_time, start_time, 0, 0, 0)
+  describe("integration with task completion", function()
+    it("should stop tracking when marking task complete", function()
+      task.add_entry("test task", "A")
 
-            assert.equals("tracked: 1h 0m ", result)
-        end)
+      -- Start tracking
+      assert.truthy(task.toggle_mark_tracking(1))
+      os.execute("sleep 1")
 
-        it("should format hours, minutes without seconds when over 1 hour", function()
-            local end_time = 10000
-            local start_time = 4550 -- 5450 seconds = 1h 30m 50s
-            local result = util.calculate_total_time(end_time, start_time, 0, 0, 0)
+      -- Mark complete (should stop tracking)
+      assert.truthy(task.toggle_mark_complete(1))
 
-            assert.equals("tracked: 1h 30m ", result)
-        end)
+      local entries = storage.get_entries(config.todo_file)
+      local t = parser.parse(entries[1])
 
-        it("should handle very large hour values", function()
-            -- Simulate 100 hours
-            local end_time = 360000
-            local start_time = 0
-            local result = util.calculate_total_time(end_time, start_time, 0, 0, 0)
-
-            assert.equals("tracked: 100h 0m ", result)
-        end)
-
-        it("should handle zero time", function()
-            local end_time = 1000
-            local start_time = 1000
-            local result = util.calculate_total_time(end_time, start_time, 0, 0, 0)
-
-            assert.equals("tracked: 0m 0s ", result)
-        end)
-
-        it("should accumulate with previous hours", function()
-            local end_time = 1500
-            local start_time = 1000 -- 500 seconds = 8m 20s
-            local result = util.calculate_total_time(end_time, start_time, 2, 0, 0)
-
-            -- 2h + 8m 20s = 2h 8m (no seconds shown since >= 1h)
-            assert.equals("tracked: 2h 8m ", result)
-        end)
-
-        it("should accumulate with previous minutes", function()
-            local end_time = 1500
-            local start_time = 1000 -- 500 seconds = 8m 20s
-            local result = util.calculate_total_time(end_time, start_time, 0, 45, 0)
-
-            -- 45m + 8m 20s = 53m 20s
-            assert.equals("tracked: 53m 20s ", result)
-        end)
-
-        it("should accumulate with previous seconds", function()
-            local end_time = 1050
-            local start_time = 1000 -- 50 seconds
-            local result = util.calculate_total_time(end_time, start_time, 0, 0, 25)
-
-            -- 25s + 50s = 75s = 1m 15s
-            assert.equals("tracked: 1m 15s ", result)
-        end)
-
-        it("should carry over seconds to minutes", function()
-            local end_time = 1090
-            local start_time = 1000 -- 90 seconds
-            local result = util.calculate_total_time(end_time, start_time, 0, 0, 0)
-
-            -- 90s = 1m 30s
-            assert.equals("tracked: 1m 30s ", result)
-        end)
-
-        it("should carry over minutes to hours", function()
-            local end_time = 4800
-            local start_time = 1200 -- 3600 seconds = 60 minutes
-            local result = util.calculate_total_time(end_time, start_time, 0, 30, 0)
-
-            -- 30m + 60m = 90m = 1h 30m
-            assert.equals("tracked: 1h 30m ", result)
-        end)
-
-        it("should handle complex accumulation with carries", function()
-            local end_time = 1200
-            local start_time = 1000 -- 200 seconds = 3m 20s
-            local result = util.calculate_total_time(end_time, start_time, 1, 58, 45)
-
-            -- 1h 58m 45s + 3m 20s = 1h 61m 65s = 2h 2m 5s
-            -- But since >= 1h, no seconds shown
-            assert.equals("tracked: 2h 2m ", result)
-        end)
+      assert.is_true(t.is_done)
+      assert.is_nil(t.start_time)
+      assert.is_truthy(t.tracked_time)
+      assert.is_truthy(t.completed)
+      assert.equals("test task", t.line)
     end)
 
-    describe("parser extraction functions", function()
-        it("should extract start_time", function()
-            local line = "(A) 2025-01-23 test task start:1234567890"
-            local start_time = parser.extract_start_time(line)
+    it("should complete task normally when not tracking", function()
+      task.add_entry("test task", "A")
 
-            assert.equals("1234567890", start_time)
-        end)
+      assert.truthy(task.toggle_mark_complete(1))
 
-        it("should return nil when no start_time present", function()
-            local line = "(A) 2025-01-23 test task"
-            local start_time = parser.extract_start_time(line)
+      local entries = storage.get_entries(config.todo_file)
+      local t = parser.parse(entries[1])
 
-            assert.is_nil(start_time)
-        end)
-
-        it("should extract tracked_time with hours", function()
-            local line = "test task tracked: 2h 30m "
-            local tracked = parser.extract_tracked_time(line)
-
-            assert.equals("tracked: 2h 30m ", tracked)
-        end)
-
-        it("should extract tracked_time without hours", function()
-            local line = "test task tracked: 15m 30s "
-            local tracked = parser.extract_tracked_time(line)
-
-            assert.equals("tracked: 15m 30s ", tracked)
-        end)
-
-        it("should return nil when no tracked_time present", function()
-            local line = "test task"
-            local tracked = parser.extract_tracked_time(line)
-
-            assert.is_nil(tracked)
-        end)
-
-        it("should extract previous total with hours", function()
-            local line = "tracked: 2h 30m "
-            local hours, minutes, seconds = parser.extract_previous_total(line)
-
-            assert.equals(2, hours)
-            assert.equals(30, minutes)
-            assert.equals(0, seconds)
-        end)
-
-        it("should extract previous total without hours", function()
-            local line = "tracked: 45m 30s "
-            local hours, minutes, seconds = parser.extract_previous_total(line)
-
-            assert.equals(0, hours)
-            assert.equals(45, minutes)
-            assert.equals(30, seconds)
-        end)
-
-        it("should clean tracking metadata from description", function()
-            local line = "test task start:1234567890 tracked: 2h 30m "
-            local clean = parser.clean_tracking_metadata(line)
-
-            assert.equals("test task", clean)
-        end)
-
-        it("should clean tracking metadata with multiple spaces", function()
-            local line = "test task   start:1234567890   tracked: 2h 30m   end:9876543210"
-            local clean = parser.clean_tracking_metadata(line)
-
-            assert.equals("test task", clean)
-        end)
-
-        it("should handle line with no tracking metadata", function()
-            local line = "test task with +project @context"
-            local clean = parser.clean_tracking_metadata(line)
-
-            assert.equals("test task with +project @context", clean)
-        end)
+      assert.is_true(t.is_done)
+      assert.is_nil(t.start_time)
+      assert.is_nil(t.tracked_time)
+      assert.is_truthy(t.completed)
+      assert.equals("test task", t.line)
     end)
 
-    describe("full parse/format round-trip with tracking", function()
-        it("should parse task with active tracking", function()
-            local line = "(A) 2025-01-23 test task start:1234567890"
-            local t = parser.parse(line)
+    it("should preserve tracked time when uncompleting task", function()
+      task.add_entry("test task", "A")
 
-            assert.equals("A", t.priority)
-            assert.equals("2025-01-23", t.created)
-            assert.equals("test task", t.line)
-            assert.equals("1234567890", t.start_time)
-            assert.is_nil(t.tracked_time)
-            assert.is_false(t.is_done)
-        end)
+      -- Start tracking, stop, then complete
+      assert.truthy(task.toggle_mark_tracking(1))
+      os.execute("sleep 1")
+      assert.truthy(task.toggle_mark_tracking(1))
 
-        it("should parse task with completed tracking", function()
-            local line = "(A) 2025-01-23 test task tracked: 2h 30m "
-            local t = parser.parse(line)
+      local entries = storage.get_entries(config.todo_file)
+      local t = parser.parse(entries[1])
+      local tracked_time = t.tracked_time
 
-            assert.equals("A", t.priority)
-            assert.equals("2025-01-23", t.created)
-            assert.equals("test task", t.line)
-            assert.is_nil(t.start_time)
-            assert.equals("tracked: 2h 30m ", t.tracked_time)
-            assert.is_false(t.is_done)
-        end)
+      -- Complete then uncomplete
+      assert.truthy(task.toggle_mark_complete(1))
+      assert.truthy(task.toggle_mark_complete(1))
 
-        it("should parse completed task with tracking", function()
-            local line = "x (A) 2025-01-24 2025-01-23 test task tracked: 1h 15m "
-            local t = parser.parse(line)
+      entries = storage.get_entries(config.todo_file)
+      t = parser.parse(entries[1])
 
-            assert.is_true(t.is_done)
-            assert.equals("A", t.priority)
-            assert.equals("2025-01-24", t.created)
-            assert.equals("2025-01-24", t.completed)
-            assert.equals("test task", t.line)
-            assert.equals("tracked: 1h 15m ", t.tracked_time)
-            assert.is_nil(t.start_time)
-        end)
-
-        it("should parse task with projects, contexts, and tracking", function()
-            local line = "(B) 2025-01-23 work on +myproject @office start:1234567890"
-            local t = parser.parse(line)
-
-            assert.equals("B", t.priority)
-            assert.equals("work on +myproject @office", t.line)
-            assert.is_truthy(t.projects["myproject"])
-            assert.is_truthy(t.contexts["office"])
-            assert.equals("1234567890", t.start_time)
-        end)
+      assert.is_false(t.is_done)
+      assert.equals(tracked_time, t.tracked_time)
+      assert.equals("test task", t.line)
     end)
+
+    it("should preserve priority when completing tracked task", function()
+      task.add_entry("test task", "A")
+
+      assert.truthy(task.toggle_mark_tracking(1))
+      os.execute("sleep 1")
+      assert.truthy(task.toggle_mark_complete(1))
+
+      local entries = storage.get_entries(config.todo_file)
+      local t = parser.parse(entries[1])
+
+      assert.is_true(t.is_done)
+      assert.equals("A", t.priority)
+      assert.is_truthy(t.tracked_time)
+      assert.equals("test task", t.line)
+    end)
+  end)
+
+  describe("time calculation and formatting", function()
+    it("should format time less than 1 minute with seconds", function()
+      local end_time = 1000
+      local start_time = 970 -- 30 seconds
+      local result = util.calculate_total_time(end_time, start_time, 0, 0, 0)
+
+      assert.equals("tracked:0m30s", result)
+    end)
+
+    it("should format time less than 1 hour with minutes and seconds", function()
+      local end_time = 2000
+      local start_time = 1500 -- 500 seconds = 8 minutes 20 seconds
+      local result = util.calculate_total_time(end_time, start_time, 0, 0, 0)
+
+      assert.equals("tracked:8m20s", result)
+    end)
+
+    it("should format time over 1 hour without seconds", function()
+      local end_time = 10000
+      local start_time = 6400 -- 3600 seconds = 1 hour
+      local result = util.calculate_total_time(end_time, start_time, 0, 0, 0)
+
+      assert.equals("tracked:1h0m", result)
+    end)
+
+    it("should format hours, minutes without seconds when over 1 hour", function()
+      local end_time = 10000
+      local start_time = 4550 -- 5450 seconds = 1h 30m 50s
+      local result = util.calculate_total_time(end_time, start_time, 0, 0, 0)
+
+      assert.equals("tracked:1h30m", result)
+    end)
+
+    it("should handle very large hour values", function()
+      -- Simulate 100 hours
+      local end_time = 360000
+      local start_time = 0
+      local result = util.calculate_total_time(end_time, start_time, 0, 0, 0)
+
+      assert.equals("tracked:100h0m", result)
+    end)
+
+    it("should handle zero time", function()
+      local end_time = 1000
+      local start_time = 1000
+      local result = util.calculate_total_time(end_time, start_time, 0, 0, 0)
+
+      assert.equals("tracked:0m0s", result)
+    end)
+
+    it("should accumulate with previous hours", function()
+      local end_time = 1500
+      local start_time = 1000 -- 500 seconds = 8m 20s
+      local result = util.calculate_total_time(end_time, start_time, 2, 0, 0)
+
+      -- 2h + 8m 20s = 2h 8m (no seconds shown since >= 1h)
+      assert.equals("tracked:2h8m", result)
+    end)
+
+    it("should accumulate with previous minutes", function()
+      local end_time = 1500
+      local start_time = 1000 -- 500 seconds = 8m 20s
+      local result = util.calculate_total_time(end_time, start_time, 0, 45, 0)
+
+      -- 45m + 8m 20s = 53m 20s
+      assert.equals("tracked:53m20s", result)
+    end)
+
+    it("should accumulate with previous seconds", function()
+      local end_time = 1050
+      local start_time = 1000 -- 50 seconds
+      local result = util.calculate_total_time(end_time, start_time, 0, 0, 25)
+
+      -- 25s + 50s = 75s = 1m 15s
+      assert.equals("tracked:1m15s", result)
+    end)
+
+    it("should carry over seconds to minutes", function()
+      local end_time = 1090
+      local start_time = 1000 -- 90 seconds
+      local result = util.calculate_total_time(end_time, start_time, 0, 0, 0)
+
+      -- 90s = 1m 30s
+      assert.equals("tracked:1m30s", result)
+    end)
+
+    it("should carry over minutes to hours", function()
+      local end_time = 4800
+      local start_time = 1200 -- 3600 seconds = 60 minutes
+      local result = util.calculate_total_time(end_time, start_time, 0, 30, 0)
+
+      -- 30m + 60m = 90m = 1h 30m
+      assert.equals("tracked:1h30m", result)
+    end)
+
+    it("should handle complex accumulation with carries", function()
+      local end_time = 1200
+      local start_time = 1000 -- 200 seconds = 3m 20s
+      local result = util.calculate_total_time(end_time, start_time, 1, 58, 45)
+
+      -- 1h 58m 45s + 3m 20s = 1h 61m 65s = 2h 2m 5s
+      -- But since >= 1h, no seconds shown
+      assert.equals("tracked:2h2m", result)
+    end)
+  end)
+
+  describe("parser extraction functions", function()
+    it("should extract start_time", function()
+      local line = "(A) 2025-01-23 test task start:1234567890"
+      local start_time = parser.extract_start_time(line)
+
+      assert.equals("1234567890", start_time)
+    end)
+
+    it("should return nil when no start_time present", function()
+      local line = "(A) 2025-01-23 test task"
+      local start_time = parser.extract_start_time(line)
+
+      assert.is_nil(start_time)
+    end)
+
+    it("should extract tracked_time with hours", function()
+      local line = "test task tracked:2h30m"
+      local tracked = parser.extract_tracked_time(line)
+
+      assert.equals("tracked:2h30m", tracked)
+    end)
+
+    it("should extract tracked_time without hours", function()
+      local line = "test task tracked:15m30s"
+      local tracked = parser.extract_tracked_time(line)
+
+      assert.equals("tracked:15m30s", tracked)
+    end)
+
+    it("should return nil when no tracked_time present", function()
+      local line = "test task"
+      local tracked = parser.extract_tracked_time(line)
+
+      assert.is_nil(tracked)
+    end)
+
+    it("should extract previous total with hours", function()
+      local line = "tracked:2h30m"
+      local hours, minutes, seconds = parser.extract_previous_total(line)
+
+      assert.equals(2, hours)
+      assert.equals(30, minutes)
+      assert.equals(0, seconds)
+    end)
+
+    it("should extract previous total without hours", function()
+      local line = "tracked:45m30s"
+      local hours, minutes, seconds = parser.extract_previous_total(line)
+
+      assert.equals(0, hours)
+      assert.equals(45, minutes)
+      assert.equals(30, seconds)
+    end)
+
+    it("should clean tracking metadata from description", function()
+      local line = "test task start:1234567890 tracked:2h30m"
+      local clean = parser.clean_tracking_metadata(line)
+
+      assert.equals("test task", clean)
+    end)
+
+    it("should clean tracking metadata with multiple spaces", function()
+      local line = "test task   start:1234567890   tracked:2h30m"
+      local clean = parser.clean_tracking_metadata(line)
+
+      assert.equals("test task", clean)
+    end)
+
+    it("should handle line with no tracking metadata", function()
+      local line = "test task with +project @context"
+      local clean = parser.clean_tracking_metadata(line)
+
+      assert.equals("test task with +project @context", clean)
+    end)
+  end)
+
+  describe("full parse/format round-trip with tracking", function()
+    it("should parse task with active tracking", function()
+      local line = "(A) 2025-01-23 test task start:1234567890"
+      local t = parser.parse(line)
+
+      assert.equals("A", t.priority)
+      assert.equals("2025-01-23", t.created)
+      assert.equals("test task", t.line)
+      assert.equals("1234567890", t.start_time)
+      assert.is_nil(t.tracked_time)
+      assert.is_false(t.is_done)
+    end)
+
+    it("should parse task with completed tracking", function()
+      local line = "(A) 2025-01-23 test task tracked:2h30m"
+      local t = parser.parse(line)
+
+      assert.equals("A", t.priority)
+      assert.equals("2025-01-23", t.created)
+      assert.equals("test task", t.line)
+      assert.is_nil(t.start_time)
+      assert.equals("tracked:2h30m", t.tracked_time)
+      assert.is_false(t.is_done)
+    end)
+
+    it("should parse completed task with tracking", function()
+      local line = "x (A) 2025-01-24 2025-01-23 test task tracked:1h15m"
+      local t = parser.parse(line)
+
+      assert.is_true(t.is_done)
+      assert.equals("A", t.priority)
+      assert.equals("2025-01-24", t.created)
+      assert.equals("2025-01-24", t.completed)
+      assert.equals("test task", t.line)
+      assert.equals("tracked:1h15m", t.tracked_time)
+      assert.is_nil(t.start_time)
+    end)
+
+    it("should parse task with projects, contexts, and tracking", function()
+      local line = "(B) 2025-01-23 work on +myproject @office start:1234567890"
+      local t = parser.parse(line)
+
+      assert.equals("B", t.priority)
+      assert.equals("work on +myproject @office", t.line)
+      assert.is_truthy(t.projects["myproject"])
+      assert.is_truthy(t.contexts["office"])
+      assert.equals("1234567890", t.start_time)
+    end)
+  end)
 end)
