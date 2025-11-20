@@ -145,8 +145,10 @@ When you press `\<Esc>` you will be in normal mode where `\<CR>` will save and p
 
 To add a priority when creating a todo item, you can start the todo item with a capital letter and a colon, i.e. "A: new task".
 
+**NEW** You can use lowercase letters to assign a priority (e.g., "a: new task") when adding or assigning a priority to an existing todo item.
+
 If the item already exists, you can press 'p' when on the task to assign a priority.
-It has to be a capital letter between A-Z.
+It has to be a capital or lowercase letter between A-Z.
 
 ### Due Date Helpers
 

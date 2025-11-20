@@ -21,7 +21,7 @@ M.config = {
     border = "rounded",
   },
   sort = {
-    by = { 'priority', 'due' },
+    by = { "priority", "due" },
   },
 }
 
@@ -55,7 +55,7 @@ function M.filter_by_tag_under_cursor()
     vim.notify("No @context or +project tag under cursor", vim.log.levels.INFO)
     return
   end
-  
+
   -- Check if this tag is already active - if so, toggle it off
   local filters = ui.get_active_filters()
   if filters.tag == tag then
@@ -64,7 +64,7 @@ function M.filter_by_tag_under_cursor()
     M.show_todo_list()
     return
   end
-  
+
   -- Check if any tasks have this tag before setting filter
   local file_entries = storage.get_entries(M.config.todo_file)
   local entries = {}
@@ -72,12 +72,12 @@ function M.filter_by_tag_under_cursor()
     table.insert(entries, { entry = line, orig_index = i })
   end
   local filtered = filter.filter_entries(entries, "tag", tag)
-  
+
   if #filtered == 0 then
     vim.notify("No tasks found for tag " .. tag, vim.log.levels.INFO)
     return
   end
-  
+
   -- Set tag filter and refresh (preserves due filter if active)
   ui.set_tag_filter(tag)
   vim.notify("Filtered by " .. tag, vim.log.levels.INFO)
@@ -90,7 +90,6 @@ function M.clear_all_filters()
   vim.notify("All filters cleared", vim.log.levels.INFO)
   M.show_todo_list()
 end
-
 
 -- Show edit window for an entry
 function M.show_edit_window()
@@ -158,20 +157,20 @@ end
 function M.show_todo_list()
   -- Get active filters
   local filters = ui.get_active_filters()
-  
+
   -- Get all entries with original indices
   local file_entries = storage.get_entries(M.config.todo_file)
   local entries = {}
   for i, line in ipairs(file_entries) do
     table.insert(entries, { entry = line, orig_index = i })
   end
-  
+
   -- Apply cascading filters
   local filtered_entries = filter.apply_filters(entries, filters)
-  
+
   -- Sort entries
   sortmod.sort_entries(filtered_entries, M.config.sort)
-  
+
   -- Build title based on active filters
   local title_parts = {}
   if filters.tag then
@@ -180,7 +179,7 @@ function M.show_todo_list()
   if filters.due then
     table.insert(title_parts, "Due")
   end
-  
+
   local title
   if #title_parts == 0 then
     title = " Todo List "
@@ -189,7 +188,7 @@ function M.show_todo_list()
   else
     title = " " .. table.concat(title_parts, " + ") .. " "
   end
-  
+
   return ui.update_list_window(filtered_entries, title)
 end
 
@@ -197,7 +196,7 @@ end
 function M.toggle_due_filter()
   local is_due_active = ui.toggle_due_filter()
   local filters = ui.get_active_filters()
-  
+
   -- Notify user of filter state
   if is_due_active then
     if filters.tag then
@@ -208,7 +207,7 @@ function M.toggle_due_filter()
   else
     vim.notify("Due filter disabled", vim.log.levels.INFO)
   end
-  
+
   M.show_todo_list()
 end
 
@@ -303,13 +302,13 @@ function M.setup(opts)
 
   -- Create user commands
   api.nvim_create_user_command("TodoList", function()
-    ui.clear_filters()  -- Clear all filters
+    ui.clear_filters() -- Clear all filters
     M.show_todo_list()
   end, {})
   api.nvim_create_user_command("TodoAdd", M.show_add_window, {})
   api.nvim_create_user_command("TodoDue", function()
-    ui.clear_filters()  -- Clear tag filter
-    ui.toggle_due_filter()  -- Enable due filter
+    ui.clear_filters() -- Clear tag filter
+    ui.toggle_due_filter() -- Enable due filter
     M.show_todo_list()
   end, {})
   api.nvim_create_user_command("TodoArchive", M.archive_done_tasks, {})
@@ -342,3 +341,4 @@ function M.setup(opts)
 end
 
 return M
+
