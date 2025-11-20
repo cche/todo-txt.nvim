@@ -27,17 +27,17 @@ end
 
 -- Extract the human-friendly tracked time from the line
 function M.extract_tracked_time(line)
-  return line:match("tracked:%s%d+%a%s%d+%a%s")
+  return line:match("tracked:%d+%a%d+%a")
 end
 
 -- Parse previously tracked time from total field and return hours, minutes, seconds
 function M.extract_previous_total(line)
-  local hours, minutes = line:match("tracked:%s(%d+)h%s(%d+)m")
+  local hours, minutes = line:match("tracked:(%d+)h(%d+)m")
   if hours then
-      return tonumber(hours), tonumber(minutes), 0
+    return tonumber(hours), tonumber(minutes), 0
   end
 
-  minutes, seconds = line:match("tracked:%s(%d+)m%s(%d+)s")
+  local minutes, seconds = line:match("tracked:(%d+)m(%d+)s")
   return 0, tonumber(minutes), tonumber(seconds)
 end
 
@@ -49,7 +49,9 @@ end
 -- Extract completion date if present after x (with or without priority in between)
 function M.extract_completed(line)
   local with_pri = line:match("^x %([A-Z]%) (%d%d%d%d%-%d%d%-%d%d)")
-  if with_pri then return with_pri end
+  if with_pri then
+    return with_pri
+  end
   return line:match("^x (%d%d%d%d%-%d%d%-%d%d)")
 end
 
@@ -72,7 +74,7 @@ function M.extract_tag_positions(line)
   for start_idx, word in line:gmatch("()%+([%w_%-]+)") do
     local len = 1 + #word -- includes '+'
     table.insert(positions, {
-      kind = 'project',
+      kind = "project",
       start_col = start_idx - 1,
       end_col = (start_idx - 1) + len,
     })
@@ -80,7 +82,7 @@ function M.extract_tag_positions(line)
   for start_idx, word in line:gmatch("()@([%w_%-]+)") do
     local len = 1 + #word -- includes '@'
     table.insert(positions, {
-      kind = 'context',
+      kind = "context",
       start_col = start_idx - 1,
       end_col = (start_idx - 1) + len,
     })
@@ -92,10 +94,9 @@ end
 -- Removes: start/end timestamps and total time information
 function M.clean_tracking_metadata(description)
   local clean_line = description
-  clean_line = clean_line:gsub("start:%d+", " ")
-  clean_line = clean_line:gsub("end:%d+", " ")
-  clean_line = clean_line:gsub("tracked:%s%d+%a%s%d+%a%s", " ")
-  clean_line = clean_line:gsub("^%s+", ""):gsub("%s+$", ""):gsub("%s+", " ")
+  clean_line = clean_line:gsub("start:%d+", "")
+  clean_line = clean_line:gsub("tracked:%d+%a%d+%a", "")
+  clean_line = clean_line:gsub("%s+$", ""):gsub("%s+", " ")
   return clean_line
 end
 
@@ -109,7 +110,6 @@ function M.parse(line)
   local is_done = M.is_done(line)
   local contexts, projects = M.extract_tags(line)
   local start_time = M.extract_start_time(line)
-  local end_time = M.extract_end_time(line)
   local tracked_time = M.extract_tracked_time(line)
 
   -- If completed and no leading priority, allow capturing priority immediately after 'x '
@@ -148,7 +148,6 @@ function M.parse(line)
     contexts = contexts,
     projects = projects,
     start_time = start_time,
-    end_time = end_time,
     tracked_time = tracked_time,
   }
 end
