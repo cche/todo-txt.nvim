@@ -17,6 +17,7 @@ A Neovim plugin for managing your todo.txt files directly from within Neovim. Th
 - Cascading filters (filter by tag and due date)
 - Due date helpers with shortcuts (`:today`, `:tomorrow`, `:nextweek`, etc.)
 - Simplified blink.cmp integration
+- Track tasks to calculate total time spent on a task
 
 ## Features I might implement in the future
 
@@ -174,6 +175,15 @@ Type `Buy groceries :tomorrow` and it will automatically expand to `Buy grocerie
 
 These shortcuts also appear in completion suggestions (type `:` to see them). It will only appear when preceded by a space to avoid conflict with the priority syntax (`A:`).
 
+### Tracking Tasks
+
+Tasks in the task list are trackable. Pressing the keybinding `s` on the task you want to track will begin tracking and mark that task as being tracked. 
+
+When you are finished tracking, pressing `s` on the task again will calculate the total time spent. You can track that same task again and the total time will 
+continue to be added.
+
+Marking a task as completed `<CR>` will also stop tracking and calculate the total time spent.
+
 ## Key Mappings
 
 Default leader key mappings (can be disabled with `disable_default_mappings`):
@@ -185,13 +195,14 @@ Default leader key mappings (can be disabled with `disable_default_mappings`):
 
 When in the todo list window:
 
-- `<CR>` - Marks the selected todo item as complete
+- `<CR>` - Marks the selected todo item as complete (if item is being tracked, will stop tracking and calculate total time)
 - `q`    - Close the window
 - `e`    - Edit the selected item
 - `a`    - Add a new todo item
 - `p`    - Set priority for the selected item
 - `f`    - Toggle filter by the @context or +project under cursor
 - `d`    - Toggle due date filter (combines with tag filter if active)
+- `s`    - Toggle tracking on/off (total is calculated when tracking is off)
 - `r`    - Clear all filters and show complete list
 
 **Cascading Filters:** Filters can be combined! For example:

@@ -26,14 +26,14 @@ function M.get_current_task_index()
 end
 
 -- Calculate total time from start/end timestamps plus any previously tracked time
--- Returns a formatted string like "total: 2h 30m 45s " or "total: 15m 30s "
+-- Returns a formatted string like "tracked: 2h 30m 45s " or "tracked: 15m 30s "
 -- @param end_time: Unix timestamp when tracking stopped
 -- @param start_time: Unix timestamp when tracking started
 -- @param prevHour: Previously accumulated hours from past sessions
 -- @param prevMin: Previously accumulated minutes from past sessions
 -- @param prevSec: Previously accumulated seconds from past sessions
 function M.calculate_total_time(end_time, start_time, prevHour, prevMin, prevSec)
-  local string = 'total: '
+  local string = 'tracked: '
   -- Calculate difference between start and end times
   local diffSec = os.difftime(tonumber(end_time), tonumber(start_time))
   local diffMin = diffSec / 60

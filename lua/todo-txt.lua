@@ -301,7 +301,6 @@ function M.setup(opts)
 
   -- Create user commands
   api.nvim_create_user_command("TodoList", function()
-    ui.clear_filters()  -- Clear all filters
     M.show_todo_list()
   end, {})
   api.nvim_create_user_command("TodoAdd", M.show_add_window, {})

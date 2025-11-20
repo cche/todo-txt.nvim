@@ -15,11 +15,6 @@ function M.is_done(line)
   return line:match("^x ") ~= nil
 end
 
--- Determine if the entry is currently being tracked
-function M.is_tracking(line)
-  return line:match("#track#") ~= nil
-end
-
 -- Extract start time from the line
 function M.extract_start_time(line)
   return line:match("start:(%d+)")
@@ -32,17 +27,17 @@ end
 
 -- Extract the human-friendly tracked time from the line
 function M.extract_tracked_time(line)
-  return line:match("total:%s%d+%a%s%d+%a%s")
+  return line:match("tracked:%s%d+%a%s%d+%a%s")
 end
 
 -- Parse previously tracked time from total field and return hours, minutes, seconds
 function M.extract_previous_total(line)
-  local hours, minutes = line:match("total:%s(%d+)h%s(%d+)m")
+  local hours, minutes = line:match("tracked:%s(%d+)h%s(%d+)m")
   if hours then
       return tonumber(hours), tonumber(minutes), 0
   end
 
-  minutes, seconds = line:match("total:%s(%d+)m%s(%d+)s")
+  minutes, seconds = line:match("tracked:%s(%d+)m%s(%d+)s")
   return 0, tonumber(minutes), tonumber(seconds)
 end
 
@@ -94,13 +89,12 @@ function M.extract_tag_positions(line)
 end
 
 -- Clean tracking metadata from task description to get pure task text
--- Removes: #track# marker, start/end timestamps, and total time information
+-- Removes: start/end timestamps and total time information
 function M.clean_tracking_metadata(description)
   local clean_line = description
-  clean_line = clean_line:gsub("#track#", " ")
   clean_line = clean_line:gsub("start:%d+", " ")
   clean_line = clean_line:gsub("end:%d+", " ")
-  clean_line = clean_line:gsub("total:%s%d+%a%s%d+%a%s", " ")
+  clean_line = clean_line:gsub("tracked:%s%d+%a%s%d+%a%s", " ")
   clean_line = clean_line:gsub("^%s+", ""):gsub("%s+$", ""):gsub("%s+", " ")
   return clean_line
 end
@@ -116,7 +110,6 @@ function M.parse(line)
   local contexts, projects = M.extract_tags(line)
   local start_time = M.extract_start_time(line)
   local end_time = M.extract_end_time(line)
-  local is_tracking = M.is_tracking(line)
   local tracked_time = M.extract_tracked_time(line)
 
   -- If completed and no leading priority, allow capturing priority immediately after 'x '
@@ -156,7 +149,6 @@ function M.parse(line)
     projects = projects,
     start_time = start_time,
     end_time = end_time,
-    is_tracking = is_tracking,
     tracked_time = tracked_time,
   }
 end

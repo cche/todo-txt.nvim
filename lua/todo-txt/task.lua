@@ -72,8 +72,7 @@ function M.toggle_mark_complete(index)
     task_table.completed = os.date("%Y-%m-%d")
 
     -- If task was being tracked when completed, stop tracking and calculate final time
-    if task_table.is_tracking then
-      task_table.is_tracking = false
+    if task_table.start_time then
       task_table.end_time = os.time()
       if task_table.tracked_time then
         -- Add current session to previously accumulated time
@@ -84,6 +83,8 @@ function M.toggle_mark_complete(index)
         -- First and final tracking session
         task_table.tracked_time = util.calculate_total_time(task_table.end_time, task_table.start_time, 0, 0, 0)
       end
+      task_table.end_time = nil
+      task_table.start_time = nil
     end
   end
 
@@ -93,7 +94,7 @@ function M.toggle_mark_complete(index)
 end
 
 -- Toggle time tracking on/off for a specific task
--- When starting tracking: sets is_tracking=true and records start_time
+-- When starting tracking: starts recording start_time
 -- When stopping tracking: calculates total time including any previous sessions
 function M.toggle_mark_tracking(index)
   local entries = storage.get_entries(config.todo_file)
@@ -104,10 +105,10 @@ function M.toggle_mark_tracking(index)
 
   local task_table = parser.parse(entry_line)
 
-  if task_table.is_tracking then
+  if task_table.start_time then
     -- Stop tracking: calculate and accumulate total time
-    task_table.is_tracking = false
     task_table.end_time = os.time()
+
     if task_table.tracked_time then
       -- Add current session time to previously tracked time
       local prevHour, prevMin, prevSec = parser.extract_previous_total(task_table.tracked_time)
@@ -117,9 +118,11 @@ function M.toggle_mark_tracking(index)
       -- First tracking session - start from zero
       task_table.tracked_time = util.calculate_total_time(task_table.end_time, task_table.start_time, 0, 0, 0)
     end
+
+    task_table.end_time = nil
+    task_table.start_time = nil
   else
     -- Start tracking: mark as active and record start time
-    task_table.is_tracking = true
     task_table.start_time = os.time()
   end
 

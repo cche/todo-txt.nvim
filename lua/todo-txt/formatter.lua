@@ -24,16 +24,6 @@ function M.format(task_table)
     table.insert(parts, task_table.completed)
   end
 
-  -- Add time tracking marker if task is currently being tracked
-  if task_table.is_tracking then
-    table.insert(parts, "#track#")
-  end
-
-  -- Add accumulated time tracking information if present
-  if task_table.tracked_time then
-    table.insert(parts, task_table.tracked_time)
-  end
-
   -- Add the pure task description
   table.insert(parts, task_table.line)
 
@@ -45,6 +35,11 @@ function M.format(task_table)
   -- Add end timestamp when tracking session is stopped
   if task_table.end_time then
     table.insert(parts, "end:" .. task_table.end_time)
+  end
+
+  -- Add accumulated time tracking information if present
+  if task_table.tracked_time then
+    table.insert(parts, task_table.tracked_time)
   end
 
   return table.concat(parts, " ")
