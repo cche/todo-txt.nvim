@@ -15,6 +15,32 @@ function M.is_done(line)
   return line:match("^x ") ~= nil
 end
 
+-- Extract start time from the line
+function M.extract_start_time(line)
+  return line:match("start:(%d+)")
+end
+
+-- Extract end time from the line
+function M.extract_end_time(line)
+  return line:match("end:(%d+)")
+end
+
+-- Extract the human-friendly tracked time from the line
+function M.extract_tracked_time(line)
+  return line:match("tracked:%s%d+%a%s%d+%a%s")
+end
+
+-- Parse previously tracked time from total field and return hours, minutes, seconds
+function M.extract_previous_total(line)
+  local hours, minutes = line:match("tracked:%s(%d+)h%s(%d+)m")
+  if hours then
+      return tonumber(hours), tonumber(minutes), 0
+  end
+
+  minutes, seconds = line:match("tracked:%s(%d+)m%s(%d+)s")
+  return 0, tonumber(minutes), tonumber(seconds)
+end
+
 -- Extract creation date (first YYYY-MM-DD after optional priority/complete markers)
 function M.extract_created(line)
   return line:match("%f[%d](%d%d%d%d%-%d%d%-%d%d)%f[^%d]")
@@ -62,6 +88,17 @@ function M.extract_tag_positions(line)
   return positions
 end
 
+-- Clean tracking metadata from task description to get pure task text
+-- Removes: start/end timestamps and total time information
+function M.clean_tracking_metadata(description)
+  local clean_line = description
+  clean_line = clean_line:gsub("start:%d+", " ")
+  clean_line = clean_line:gsub("end:%d+", " ")
+  clean_line = clean_line:gsub("tracked:%s%d+%a%s%d+%a%s", " ")
+  clean_line = clean_line:gsub("^%s+", ""):gsub("%s+$", ""):gsub("%s+", " ")
+  return clean_line
+end
+
 -- Parse full line into a structured table
 function M.parse(line)
   local raw_line = line
@@ -71,6 +108,9 @@ function M.parse(line)
   local completed = M.extract_completed(line)
   local is_done = M.is_done(line)
   local contexts, projects = M.extract_tags(line)
+  local start_time = M.extract_start_time(line)
+  local end_time = M.extract_end_time(line)
+  local tracked_time = M.extract_tracked_time(line)
 
   -- If completed and no leading priority, allow capturing priority immediately after 'x '
   if is_done and not priority then
@@ -94,6 +134,9 @@ function M.parse(line)
   end
   description = description:gsub("^%s*", "") -- Trim leading spaces
 
+  -- Clean tracking metadata from description
+  description = M.clean_tracking_metadata(description)
+
   return {
     raw_line = raw_line,
     line = description, -- This will now be the pure description
@@ -104,6 +147,9 @@ function M.parse(line)
     is_done = is_done,
     contexts = contexts,
     projects = projects,
+    start_time = start_time,
+    end_time = end_time,
+    tracked_time = tracked_time,
   }
 end
 

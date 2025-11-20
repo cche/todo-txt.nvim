@@ -98,6 +98,7 @@ function M.update_list_window(entries, title)
       '<cmd>lua require("todo-txt").toggle_selected_complete()<CR>',
       opts
     )
+    api.nvim_buf_set_keymap(list_window.buf, "n", "s", '<cmd>lua require("todo-txt").toggle_selected_tracking()<CR>', opts)
     api.nvim_buf_set_keymap(list_window.buf, "n", "a", '<cmd>lua require("todo-txt").show_add_window()<CR>', opts)
     api.nvim_buf_set_keymap(list_window.buf, "n", "e", '<cmd>lua require("todo-txt").show_edit_window()<CR>', opts)
     api.nvim_buf_set_keymap(list_window.buf, "n", "p", '<cmd>lua require("todo-txt").show_priority_window()<CR>', opts)
