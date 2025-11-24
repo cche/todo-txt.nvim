@@ -159,10 +159,16 @@ function M.update_list_window(entries, title)
   return list_window.buf, list_window.win
 end
 
--- Refresh the current list window with the active filter
+-- Refresh the current list window while preserving active filters
 function M.refresh_current_list()
-  -- Use user command to refresh - it will apply the current filter
-  vim.cmd("TodoList")
+  -- Directly call the core list rendering function so we don't reset filters
+  local ok, todo = pcall(require, "todo-txt")
+  if ok and type(todo.show_todo_list) == "function" then
+    todo.show_todo_list()
+  else
+    -- Fallback to user command if something goes wrong
+    vim.cmd("TodoList")
+  end
 end
 
 -- Show edit window for an entry
