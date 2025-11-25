@@ -33,7 +33,7 @@ end
 -- @param prevMin: Previously accumulated minutes from past sessions
 -- @param prevSec: Previously accumulated seconds from past sessions
 function M.calculate_total_time(end_time, start_time, prevHour, prevMin, prevSec)
-  local string = 'tracked: '
+  local string = "tracked:"
   -- Calculate difference between start and end times
   local diffSec = os.difftime(tonumber(end_time), tonumber(start_time))
   local diffMin = diffSec / 60
@@ -65,14 +65,14 @@ function M.calculate_total_time(end_time, start_time, prevHour, prevMin, prevSec
 
   -- Build formatted time string - always show minutes, hours and seconds conditionally
   if totalHour > 0 then
-    string = string .. totalHour .. "h "
+    string = string .. totalHour .. "h"
   end
 
-  string = string .. totalMin .. "m "
+  string = string .. totalMin .. "m"
 
   -- Show seconds only if less than 1 hour total (for readability)
   if totalHour < 1 then
-    string = string .. totalSec .. "s "
+    string = string .. totalSec .. "s"
   end
 
   return string
