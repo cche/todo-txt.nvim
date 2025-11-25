@@ -63,17 +63,10 @@ function M.calculate_total_time(end_time, start_time, prevHour, prevMin, prevSec
     totalMin = math.fmod(totalMin, 60)
   end
 
-  -- Build formatted time string - always show minutes, hours and seconds conditionally
-  if totalHour > 0 then
-    string = string .. totalHour .. "h"
-  end
-
-  string = string .. totalMin .. "m"
-
-  -- Show seconds only if less than 1 hour total (for readability)
-  if totalHour < 1 then
-    string = string .. totalSec .. "s"
-  end
+  -- Build formatted time string: 'tracked: XhXmXs'
+  string = string .. totalHour .. "h "
+  string = string .. totalMin .. "m "
+  string = string .. totalSec .. "s "
 
   return string
 end
