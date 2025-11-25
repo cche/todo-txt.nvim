@@ -22,18 +22,7 @@ end
 
 -- Extract the human-friendly tracked time from the line
 function M.extract_tracked_time(line)
-  return line:match("tracked:%d+%a%d+%a")
-end
-
--- Parse previously tracked time from total field and return hours, minutes, seconds
-function M.extract_previous_total(line)
-  local hours, minutes = line:match("tracked:(%d+)h(%d+)m")
-  if hours then
-    return tonumber(hours), tonumber(minutes), 0
-  end
-
-  local minutes, seconds = line:match("tracked:(%d+)m(%d+)s")
-  return 0, tonumber(minutes), tonumber(seconds)
+  return line:match("tracked:%d+h%d+m%d+s")
 end
 
 -- Extract creation date (first YYYY-MM-DD after optional priority/complete markers)
@@ -90,7 +79,7 @@ end
 function M.clean_tracking_metadata(description)
   local clean_line = description
   clean_line = clean_line:gsub("start:%d+", "")
-  clean_line = clean_line:gsub("tracked:%d+%a%d+%a", "")
+  clean_line = clean_line:gsub("tracked:%d+h%d+m%d+s", "")
   clean_line = clean_line:gsub("%s+$", ""):gsub("%s+", " ")
   return clean_line
 end

@@ -76,7 +76,7 @@ function M.toggle_mark_complete(index)
       task_table.end_time = os.time()
       if task_table.tracked_time then
         -- Add current session to previously accumulated time
-        local prevHour, prevMin, prevSec = parser.extract_previous_total(task_table.tracked_time)
+        local prevHour, prevMin, prevSec = parser.extract_tracked_time(task_table.tracked_time)
         task_table.tracked_time =
           util.calculate_total_time(task_table.end_time, task_table.start_time, prevHour, prevMin, prevSec)
       else
@@ -111,7 +111,7 @@ function M.toggle_mark_tracking(index)
 
     if task_table.tracked_time then
       -- Add current session time to previously tracked time
-      local prevHour, prevMin, prevSec = parser.extract_previous_total(task_table.tracked_time)
+      local prevHour, prevMin, prevSec = parser.extract_tracked_time(task_table.tracked_time)
       task_table.tracked_time = util.calculate_total_time(end_time, task_table.start_time, prevHour, prevMin, prevSec)
     else
       -- First tracking session - start from zero

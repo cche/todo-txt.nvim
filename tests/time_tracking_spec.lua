@@ -178,36 +178,36 @@ describe("time_tracking", function()
   end)
 
   describe("time calculation and formatting", function()
-    it("should format time less than 1 minute with seconds", function()
+    it("should properly format time less than 1 minute with seconds", function()
       local end_time = 1000
       local start_time = 970 -- 30 seconds
       local result = util.calculate_total_time(end_time, start_time, 0, 0, 0)
 
-      assert.equals("tracked:0m30s", result)
+      assert.equals("tracked:0h0m30s", result)
     end)
 
-    it("should format time less than 1 hour with minutes and seconds", function()
+    it("should properly format time less than 1 hour with minutes and seconds", function()
       local end_time = 2000
       local start_time = 1500 -- 500 seconds = 8 minutes 20 seconds
       local result = util.calculate_total_time(end_time, start_time, 0, 0, 0)
 
-      assert.equals("tracked:8m20s", result)
+      assert.equals("tracked:0h8m20s", result)
     end)
 
-    it("should format time over 1 hour without seconds", function()
+    it("should properly format time over 1 hour", function()
       local end_time = 10000
       local start_time = 6400 -- 3600 seconds = 1 hour
       local result = util.calculate_total_time(end_time, start_time, 0, 0, 0)
 
-      assert.equals("tracked:1h0m", result)
+      assert.equals("tracked:1h0m0s", result)
     end)
 
-    it("should format hours, minutes without seconds when over 1 hour", function()
+    it("should format hours, minutes and seconds when over 1 hour", function()
       local end_time = 10000
       local start_time = 4550 -- 5450 seconds = 1h 30m 50s
       local result = util.calculate_total_time(end_time, start_time, 0, 0, 0)
 
-      assert.equals("tracked:1h30m", result)
+      assert.equals("tracked:1h30m50s", result)
     end)
 
     it("should handle very large hour values", function()
@@ -216,7 +216,7 @@ describe("time_tracking", function()
       local start_time = 0
       local result = util.calculate_total_time(end_time, start_time, 0, 0, 0)
 
-      assert.equals("tracked:100h0m", result)
+      assert.equals("tracked:100h0m0s", result)
     end)
 
     it("should handle zero time", function()
@@ -224,7 +224,7 @@ describe("time_tracking", function()
       local start_time = 1000
       local result = util.calculate_total_time(end_time, start_time, 0, 0, 0)
 
-      assert.equals("tracked:0m0s", result)
+      assert.equals("tracked:0h0m0s", result)
     end)
 
     it("should accumulate with previous hours", function()
@@ -233,7 +233,7 @@ describe("time_tracking", function()
       local result = util.calculate_total_time(end_time, start_time, 2, 0, 0)
 
       -- 2h + 8m 20s = 2h 8m (no seconds shown since >= 1h)
-      assert.equals("tracked:2h8m", result)
+      assert.equals("tracked:2h8m20s", result)
     end)
 
     it("should accumulate with previous minutes", function()
@@ -242,7 +242,7 @@ describe("time_tracking", function()
       local result = util.calculate_total_time(end_time, start_time, 0, 45, 0)
 
       -- 45m + 8m 20s = 53m 20s
-      assert.equals("tracked:53m20s", result)
+      assert.equals("tracked:0h53m20s", result)
     end)
 
     it("should accumulate with previous seconds", function()
@@ -251,7 +251,7 @@ describe("time_tracking", function()
       local result = util.calculate_total_time(end_time, start_time, 0, 0, 25)
 
       -- 25s + 50s = 75s = 1m 15s
-      assert.equals("tracked:1m15s", result)
+      assert.equals("tracked:0h1m15s", result)
     end)
 
     it("should carry over seconds to minutes", function()
@@ -260,7 +260,7 @@ describe("time_tracking", function()
       local result = util.calculate_total_time(end_time, start_time, 0, 0, 0)
 
       -- 90s = 1m 30s
-      assert.equals("tracked:1m30s", result)
+      assert.equals("tracked:0h1m30s", result)
     end)
 
     it("should carry over minutes to hours", function()
@@ -269,7 +269,7 @@ describe("time_tracking", function()
       local result = util.calculate_total_time(end_time, start_time, 0, 30, 0)
 
       -- 30m + 60m = 90m = 1h 30m
-      assert.equals("tracked:1h30m", result)
+      assert.equals("tracked:1h30m0s", result)
     end)
 
     it("should handle complex accumulation with carries", function()
@@ -278,8 +278,7 @@ describe("time_tracking", function()
       local result = util.calculate_total_time(end_time, start_time, 1, 58, 45)
 
       -- 1h 58m 45s + 3m 20s = 1h 61m 65s = 2h 2m 5s
-      -- But since >= 1h, no seconds shown
-      assert.equals("tracked:2h2m", result)
+      assert.equals("tracked:2h2m5s", result)
     end)
   end)
 
@@ -299,17 +298,17 @@ describe("time_tracking", function()
     end)
 
     it("should extract tracked_time with hours", function()
-      local line = "test task tracked:2h30m"
+      local line = "test task tracked:2h30m0s"
       local tracked = parser.extract_tracked_time(line)
 
-      assert.equals("tracked:2h30m", tracked)
+      assert.equals("tracked:2h30m0s", tracked)
     end)
 
     it("should extract tracked_time without hours", function()
-      local line = "test task tracked:15m30s"
+      local line = "test task tracked:0h15m30s"
       local tracked = parser.extract_tracked_time(line)
 
-      assert.equals("tracked:15m30s", tracked)
+      assert.equals("tracked:0h15m30s", tracked)
     end)
 
     it("should return nil when no tracked_time present", function()
@@ -320,8 +319,8 @@ describe("time_tracking", function()
     end)
 
     it("should extract previous total with hours", function()
-      local line = "tracked:2h30m"
-      local hours, minutes, seconds = parser.extract_previous_total(line)
+      local line = "tracked:2h30m0s"
+      local hours, minutes, seconds = parser.extract_tracked_time(line)
 
       assert.equals(2, hours)
       assert.equals(30, minutes)
@@ -329,8 +328,8 @@ describe("time_tracking", function()
     end)
 
     it("should extract previous total without hours", function()
-      local line = "tracked:45m30s"
-      local hours, minutes, seconds = parser.extract_previous_total(line)
+      local line = "tracked:0h45m30s"
+      local hours, minutes, seconds = parser.extract_tracked_time(line)
 
       assert.equals(0, hours)
       assert.equals(45, minutes)
@@ -338,14 +337,14 @@ describe("time_tracking", function()
     end)
 
     it("should clean tracking metadata from description", function()
-      local line = "test task start:1234567890 tracked:2h30m"
+      local line = "test task start:1234567890 tracked:2h30m0s"
       local clean = parser.clean_tracking_metadata(line)
 
       assert.equals("test task", clean)
     end)
 
     it("should clean tracking metadata with multiple spaces", function()
-      local line = "test task   start:1234567890   tracked:2h30m"
+      local line = "test task   start:1234567890   tracked:2h30m0s"
       local clean = parser.clean_tracking_metadata(line)
 
       assert.equals("test task", clean)
@@ -373,19 +372,19 @@ describe("time_tracking", function()
     end)
 
     it("should parse task with completed tracking", function()
-      local line = "(A) 2025-01-23 test task tracked:2h30m"
+      local line = "(A) 2025-01-23 test task tracked:2h30m5s"
       local t = parser.parse(line)
 
       assert.equals("A", t.priority)
       assert.equals("2025-01-23", t.created)
       assert.equals("test task", t.line)
       assert.is_nil(t.start_time)
-      assert.equals("tracked:2h30m", t.tracked_time)
+      assert.equals("tracked:2h30m5s", t.tracked_time)
       assert.is_false(t.is_done)
     end)
 
     it("should parse completed task with tracking", function()
-      local line = "x (A) 2025-01-24 2025-01-23 test task tracked:1h15m"
+      local line = "x (A) 2025-01-24 2025-01-23 test task tracked:1h15m35s"
       local t = parser.parse(line)
 
       assert.is_true(t.is_done)
@@ -393,7 +392,7 @@ describe("time_tracking", function()
       assert.equals("2025-01-24", t.created)
       assert.equals("2025-01-24", t.completed)
       assert.equals("test task", t.line)
-      assert.equals("tracked:1h15m", t.tracked_time)
+      assert.equals("tracked:1h15m35s", t.tracked_time)
       assert.is_nil(t.start_time)
     end)
 
