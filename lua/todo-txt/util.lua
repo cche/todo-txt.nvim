@@ -47,9 +47,9 @@ function M.calculate_total_time(end_time, start_time, prevHour, prevMin, prevSec
   local hourFlat = math.floor(diffHour)
 
   -- Add current session time to previously accumulated time
-  local totalSec = secFlat + prevSec
-  local totalMin = minFlat + prevMin
-  local totalHour = hourFlat + prevHour
+  local totalSec = secFlat + tonumber(prevSec)
+  local totalMin = minFlat + tonumber(prevMin)
+  local totalHour = hourFlat + tonumber(prevHour)
 
   -- Handle seconds overflow (carry to minutes)
   if totalSec >= 60 then
@@ -64,9 +64,9 @@ function M.calculate_total_time(end_time, start_time, prevHour, prevMin, prevSec
   end
 
   -- Build formatted time string: 'tracked: XhXmXs'
-  string = string .. totalHour .. "h "
-  string = string .. totalMin .. "m "
-  string = string .. totalSec .. "s "
+  string = string .. totalHour .. "h"
+  string = string .. totalMin .. "m"
+  string = string .. totalSec .. "s"
 
   return string
 end

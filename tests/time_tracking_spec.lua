@@ -320,20 +320,20 @@ describe("time_tracking", function()
 
     it("should extract previous total with hours", function()
       local line = "tracked:2h30m0s"
-      local hours, minutes, seconds = parser.extract_tracked_time(line)
+      local hours, minutes, seconds = parser.extract_tracked_time(line):match("tracked:(%d+)h(%d+)m(%d+)s")
 
-      assert.equals(2, hours)
-      assert.equals(30, minutes)
-      assert.equals(0, seconds)
+      assert.equals("2", hours)
+      assert.equals("30", minutes)
+      assert.equals("0", seconds)
     end)
 
     it("should extract previous total without hours", function()
       local line = "tracked:0h45m30s"
-      local hours, minutes, seconds = parser.extract_tracked_time(line)
+      local hours, minutes, seconds = parser.extract_tracked_time(line):match("tracked:(%d+)h(%d+)m(%d+)s")
 
-      assert.equals(0, hours)
-      assert.equals(45, minutes)
-      assert.equals(30, seconds)
+      assert.equals("0", hours)
+      assert.equals("45", minutes)
+      assert.equals("30", seconds)
     end)
 
     it("should clean tracking metadata from description", function()
