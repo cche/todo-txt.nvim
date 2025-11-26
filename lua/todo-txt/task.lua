@@ -70,6 +70,60 @@ function M.toggle_mark_complete(index)
     -- Mark as completed
     task_table.is_done = true
     task_table.completed = os.date("%Y-%m-%d")
+
+    -- If task was being tracked when completed, stop tracking and calculate final time
+    if task_table.start_time then
+      task_table.end_time = os.time()
+      if task_table.tracked_time then
+        -- Add current session to previously accumulated time
+        local prevHour, prevMin, prevSec =
+          parser.extract_tracked_time(task_table.tracked_time):match("(%d+)h(%d+)m(%d+)s")
+        task_table.tracked_time =
+          util.calculate_total_time(task_table.end_time, task_table.start_time, prevHour, prevMin, prevSec)
+      else
+        -- First and final tracking session
+        task_table.tracked_time = util.calculate_total_time(task_table.end_time, task_table.start_time, 0, 0, 0)
+      end
+      task_table.end_time = nil
+      task_table.start_time = nil
+    end
+  end
+
+  entries[index] = formatter.format(task_table)
+  storage.write_entries(config.todo_file, entries)
+  return true
+end
+
+-- Toggle time tracking on/off for a specific task
+-- When starting tracking: starts recording start_time
+-- When stopping tracking: calculates total time including any previous sessions
+function M.toggle_mark_tracking(index)
+  local entries = storage.get_entries(config.todo_file)
+  local entry_line = get_entry_by_index(index, entries)
+  if not entry_line then
+    return false
+  end
+
+  local task_table = parser.parse(entry_line)
+
+  if task_table.start_time then
+    -- Stop tracking: calculate and accumulate total time
+    local end_time = os.time()
+
+    if task_table.tracked_time then
+      -- Add current session time to previously tracked time
+      local prevHour, prevMin, prevSec =
+        parser.extract_tracked_time(task_table.tracked_time):match("(%d+)h(%d+)m(%d+)s")
+      task_table.tracked_time = util.calculate_total_time(end_time, task_table.start_time, prevHour, prevMin, prevSec)
+    else
+      -- First tracking session - start from zero
+      task_table.tracked_time = util.calculate_total_time(end_time, task_table.start_time, 0, 0, 0)
+    end
+
+    task_table.start_time = nil
+  else
+    -- Start tracking: mark as active and record start time
+    task_table.start_time = os.time()
   end
 
   entries[index] = formatter.format(task_table)
