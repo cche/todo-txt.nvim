@@ -12,6 +12,7 @@ function M.setup()
     TodoNumber = { link = "Number" },
     TodoDue = { link = "WarningMsg" },
     TodoOverdue = { link = "ErrorMsg" },
+    TodoTracked = { link = "Todo" },
   }
 
   for group, settings in pairs(highlights) do
@@ -78,7 +79,7 @@ function M.get_highlights(line_nr, line)
     local positions = parser.extract_tag_positions(line)
     for _, pos in ipairs(positions) do
       table.insert(regions, {
-        group = (pos.kind == 'project') and "TodoProject" or "TodoContext",
+        group = (pos.kind == "project") and "TodoProject" or "TodoContext",
         start_col = pos.start_col,
         end_col = pos.end_col,
       })
@@ -96,10 +97,12 @@ function M.get_highlights(line_nr, line)
           year = tonumber(date:sub(1, 4)),
           month = tonumber(date:sub(6, 7)),
           day = tonumber(date:sub(9, 10)),
-          hour = 0, min = 0, sec = 0,
+          hour = 0,
+          min = 0,
+          sec = 0,
         })
         local now = os.date("*t")
-        local today = os.time({year = now.year, month = now.month, day = now.day, hour = 0, min = 0, sec = 0})
+        local today = os.time({ year = now.year, month = now.month, day = now.day, hour = 0, min = 0, sec = 0 })
         local group = (due_date < today) and "TodoOverdue" or "TodoDue"
         table.insert(regions, {
           group = group,
@@ -108,6 +111,16 @@ function M.get_highlights(line_nr, line)
         })
       end
     end
+  end
+
+  -- Highlight the actively tracked task
+  local tracked_start = line:find("(start:)(%d+)")
+  if tracked_start then
+    table.insert(regions, {
+      group = "TodoTracked",
+      start_col = tracked_start - 1,
+      end_col = tracked_start + 5,
+    })
   end
 
   return regions
