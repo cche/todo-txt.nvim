@@ -9,6 +9,7 @@ local parser = require("todo-txt.parser")
 local sortmod = require("todo-txt.sort")
 local util = require("todo-txt.util")
 local due_helpers = require("todo-txt.due_helpers")
+local time_summary = require("todo-txt.time_summary")
 local M = {}
 
 -- Configuration with defaults
@@ -275,6 +276,13 @@ function M.archive_done_tasks()
   end
 end
 
+-- Show time tracking summary by project and context
+function M.show_time_summary()
+  local summary = time_summary.aggregate_time_by_tags(M.config)
+  local lines = time_summary.format_summary(summary)
+  ui.show_time_summary_window(lines)
+end
+
 -- Set up commands
 function M.setup(opts)
   M.config = vim.tbl_deep_extend("force", M.config, opts or {})
@@ -311,6 +319,7 @@ function M.setup(opts)
     M.show_todo_list()
   end, {})
   api.nvim_create_user_command("TodoArchive", M.archive_done_tasks, {})
+  api.nvim_create_user_command("TodoTimeReport", M.show_time_summary, {})
 
   -- Create default key mappings if not disabled
   if not (opts and opts.disable_default_mappings) then
@@ -329,6 +338,12 @@ function M.setup(opts)
       "<leader>tz",
       M.archive_done_tasks,
       { desc = "Archive Done Tasks", noremap = true, silent = true }
+    )
+    vim.keymap.set(
+      "n",
+      "<leader>ts",
+      M.show_time_summary,
+      { desc = "Time Tracking Summary", noremap = true, silent = true }
     )
   end
 

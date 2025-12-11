@@ -6,7 +6,7 @@ local M = {}
 
 local config = {}
 local list_window = { buf = nil, win = nil }
-local active_filters = { tag = nil, due = false }  -- tracks active filters (can be combined)
+local active_filters = { tag = nil, due = false } -- tracks active filters (can be combined)
 
 -- Create a single namespace for this plugin's highlights
 local NS_ID = api.nvim_create_namespace("todo_txt_highlights")
@@ -98,7 +98,13 @@ function M.update_list_window(entries, title)
       '<cmd>lua require("todo-txt").toggle_selected_complete()<CR>',
       opts
     )
-    api.nvim_buf_set_keymap(list_window.buf, "n", "s", '<cmd>lua require("todo-txt").toggle_selected_tracking()<CR>', opts)
+    api.nvim_buf_set_keymap(
+      list_window.buf,
+      "n",
+      "s",
+      '<cmd>lua require("todo-txt").toggle_selected_tracking()<CR>',
+      opts
+    )
     api.nvim_buf_set_keymap(list_window.buf, "n", "a", '<cmd>lua require("todo-txt").show_add_window()<CR>', opts)
     api.nvim_buf_set_keymap(list_window.buf, "n", "e", '<cmd>lua require("todo-txt").show_edit_window()<CR>', opts)
     api.nvim_buf_set_keymap(list_window.buf, "n", "p", '<cmd>lua require("todo-txt").show_priority_window()<CR>', opts)
@@ -110,7 +116,13 @@ function M.update_list_window(entries, title)
       '<cmd>lua require("todo-txt").filter_by_tag_under_cursor()<CR>',
       opts
     )
-    api.nvim_buf_set_keymap(list_window.buf, "n", "dd", '<cmd>lua require("todo-txt").delete_selected_entry()<CR>', opts)
+    api.nvim_buf_set_keymap(
+      list_window.buf,
+      "n",
+      "dd",
+      '<cmd>lua require("todo-txt").delete_selected_entry()<CR>',
+      opts
+    )
     -- Toggle due filter
     api.nvim_buf_set_keymap(list_window.buf, "n", "d", '<cmd>lua require("todo-txt").toggle_due_filter()<CR>', opts)
     -- Clear all filters (show all)
@@ -120,7 +132,12 @@ function M.update_list_window(entries, title)
   -- Update window title if it changed
   if list_window.win and api.nvim_win_is_valid(list_window.win) then
     local win_config = api.nvim_win_get_config(list_window.win)
-    if win_config.title and type(win_config.title) == "table" and win_config.title[1] and win_config.title[1][1] ~= title then
+    if
+      win_config.title
+      and type(win_config.title) == "table"
+      and win_config.title[1]
+      and win_config.title[1][1] ~= title
+    then
       win_config.title = title
       api.nvim_win_set_config(list_window.win, win_config)
     end
@@ -150,12 +167,12 @@ function M.update_list_window(entries, title)
   end
 
   api.nvim_set_option_value("modifiable", false, { buf = list_window.buf })
-  
+
   -- Focus the window if it exists and is valid
   if list_window.win and api.nvim_win_is_valid(list_window.win) then
     api.nvim_set_current_win(list_window.win)
   end
-  
+
   return list_window.buf, list_window.win
 end
 
@@ -178,17 +195,17 @@ function M.show_edit_window(index, original_entry)
 
   -- Set window type for completion source detection
   pcall(api.nvim_win_set_var, win, "todo_txt_window_type", "edit")
-  
+
   -- Configure completion sources - disable other sources, enable only todo-txt
   local has_cmp, cmp = pcall(require, "cmp")
   if has_cmp then
     cmp.setup.buffer({
       sources = {
-        { name = "todo-txt" }
-      }
+        { name = "todo-txt" },
+      },
     })
   end
-  
+
   -- Configure blink.cmp if available
   local has_blink, blink = pcall(require, "blink.cmp")
   if has_blink then
@@ -243,32 +260,44 @@ end
 
 function M.show_add_window()
   local buf, win = create_floating_window(config.window.width, 1, " Add Todo ")
-  
+
   -- Set window type for completion source detection
   pcall(api.nvim_win_set_var, win, "todo_txt_window_type", "add")
-  
+
   -- Configure completion sources - disable other sources, enable only todo-txt
   local has_cmp, cmp = pcall(require, "cmp")
   if has_cmp then
     cmp.setup.buffer({
       sources = {
-        { name = "todo-txt" }
-      }
+        { name = "todo-txt" },
+      },
     })
   end
-  
+
   -- Configure blink.cmp if available
   local has_blink, blink = pcall(require, "blink.cmp")
   if has_blink then
     -- Set buffer-local sources for blink.cmp to only show todo completions
     vim.api.nvim_buf_set_var(buf, "blink_cmp_sources", { "todo" })
   end
-  
+
   vim.cmd("startinsert")
   local opts = { noremap = true, silent = true }
   api.nvim_buf_set_keymap(buf, "i", "<CR>", '<Esc><cmd>lua require("todo-txt").submit_new_entry()<CR>', opts)
   api.nvim_buf_set_keymap(buf, "n", "<CR>", '<cmd>lua require("todo-txt").submit_new_entry()<CR>', opts)
   api.nvim_buf_set_keymap(buf, "n", "<Esc>", "<Esc><cmd>q<CR>", opts)
+end
+
+function M.show_time_summary_window(lines)
+  local height = math.min(#lines + 2, math.floor(vim.o.lines * 0.8))
+  local buf, win = create_floating_window(nil, height, " Time Tracking Summary ")
+
+  api.nvim_buf_set_lines(buf, 0, -1, false, lines)
+  api.nvim_set_option_value("modifiable", false, { buf = buf })
+
+  local opts = { noremap = true, silent = true }
+  api.nvim_buf_set_keymap(buf, "n", "q", "<cmd>q<CR>", opts)
+  api.nvim_buf_set_keymap(buf, "n", "<Esc>", "<cmd>q<CR>", opts)
 end
 
 return M
